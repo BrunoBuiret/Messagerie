@@ -19,6 +19,17 @@ import javax.net.ssl.SSLSocketFactory;
  */
 public class SmtpClient
 {
+    protected enum StateEnum
+    {
+        Initialisation,
+        Connected,
+        MailTransaction,
+        WaitForData,
+        DataTransaction,
+        EndDataTransaction,
+        WaitForExitConfirm;
+    };
+    
     /**
      * 
      */
@@ -34,12 +45,14 @@ public class SmtpClient
      */
     protected BufferedInputStream socketReader;
     
+    protected StateEnum stateEnum = StateEnum.Initialisation;
+    
     /**
      * 
      * @param host
      * @param port 
      */
-    public SmtpClient(InetAddress host, int port)
+    public SmtpClient(InetAddress host, int port, String domain)
     {
         try
         {
@@ -148,5 +161,88 @@ public class SmtpClient
 
             throw ex;
         }
+    }
+    
+    protected int stateValidation(StateEnum futurState, String serverResponse)
+    {
+        if(!serverResponse.startsWith("250"))
+        {
+            return 0;
+        }
+
+        this.stateEnum = futurState;
+
+        return 1;
+    }
+    
+    public int ehlo(String domain) {
+        try {
+            this.sendRequest("EHLO " + domain);
+        } catch (IOException ex) {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this.stateValidation(StateEnum.MailTransaction, this.readResponse());
+    }
+    
+    public int mailFrom(String mailAddress) {
+        try {
+            this.sendRequest("MAIL FROM " + mailAddress);
+        } catch (IOException ex) {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this.stateValidation(StateEnum.WaitForData, this.readResponse());
+    }
+    
+    public int rcptTo(String destination) {
+        try {
+            this.sendRequest("RCPT TO " + destination);
+        } catch (IOException ex) {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this.stateValidation(StateEnum.DataTransaction, this.readResponse());
+    }
+    
+    public int data() {
+        try {
+            this.sendRequest("DATA");
+        } catch (IOException ex) {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return this.stateValidation(StateEnum.EndDataTransaction, this.readResponse());
+    }
+    
+    public int sendMailData(String mail) {
+        try {
+            this.sendRequest(mail);
+        } catch (IOException ex) {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return this.stateValidation(StateEnum.WaitForExitConfirm, this.readResponse());
+    }
+    
+    public int quit() {
+        try {
+            this.sendRequest("QUIT");
+        } catch (IOException ex) {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return this.stateValidation(StateEnum.Initialisation, this.readResponse());
+    }
+    
+    public void scenario() {
+        /*
+        ehlo();
+        
+        mailFrom();
+        
+        rcptto();
+        
+        data();
+        
+        quit();
+                */
     }
 }

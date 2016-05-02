@@ -20,7 +20,7 @@ public abstract class MainClient
     {
         try
         {
-            SmtpClient client = new SmtpClient(InetAddress.getByName("127.0.0.1"), 9999);
+            SmtpClient client = new SmtpClient(InetAddress.getByName("127.0.0.1"), 9999, "univ-lyon1.fr");
         }
         catch(UnknownHostException ex)
         {
