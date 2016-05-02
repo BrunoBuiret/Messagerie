@@ -288,6 +288,9 @@ public class Pop3Connection extends Thread
             }
         }
         while(keepLooping);
+        
+        // The loop has reached its end, close the socket and end the thread
+        this.closeSocket();
     }
     
     /**
