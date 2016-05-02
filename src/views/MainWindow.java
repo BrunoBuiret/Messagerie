@@ -58,7 +58,7 @@ public class MainWindow extends javax.swing.JFrame
         jTextField3 = new javax.swing.JTextField();
         browseButton = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
-        accountsList = new javax.swing.JList<>();
+        accountsList = new javax.swing.JList<String>();
         serverAddressLabel = new javax.swing.JLabel();
         serverPortLabel = new javax.swing.JLabel();
         serverAddressField = new javax.swing.JTextField();
@@ -71,6 +71,7 @@ public class MainWindow extends javax.swing.JFrame
         deleteAfterDownloadingField = new javax.swing.JCheckBox();
         filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 32767));
         jPanel2 = new AccountTab();
+        accountTab1 = new views.AccountTab();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Messagerie");
@@ -161,10 +162,10 @@ public class MainWindow extends javax.swing.JFrame
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
         settingsTab.add(jPanel1, gridBagConstraints);
 
-        accountsList.setModel(new javax.swing.AbstractListModel<String>() {
+        accountsList.setModel(new javax.swing.AbstractListModel() {
             String[] strings = { "Compte #1", "Compte #2", "Compte #3" };
             public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
+            public Object getElementAt(int i) { return strings[i]; }
         });
         jScrollPane1.setViewportView(accountsList);
 
@@ -272,6 +273,16 @@ public class MainWindow extends javax.swing.JFrame
         settingsTab.add(filler1, gridBagConstraints);
 
         tabs.addTab("Paramètres", settingsTab);
+
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 0.1;
+        gridBagConstraints.weighty = 0.1;
+        jPanel2.add(accountTab1, gridBagConstraints);
+
         tabs.addTab("tab2", jPanel2);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -320,6 +331,7 @@ public class MainWindow extends javax.swing.JFrame
     }//GEN-LAST:event_newMailButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private views.AccountTab accountTab1;
     private javax.swing.JList<String> accountsList;
     private javax.swing.JButton browseButton;
     private javax.swing.JCheckBox deleteAfterDownloadingField;
