@@ -7,5 +7,24 @@ package smtp.server;
  */
 public enum SmtpState
 {
-    
+    /**
+     * 
+     */
+    INITIALIZATION,
+    /**
+     * 
+     */
+    EXPECTING_GREETINGS,
+    /**
+     * 
+     */
+    EXPECTING_TRANSACTION,
+    /**
+     * 
+     */
+    EXPECTING_RECIPIENTS,
+    /**
+     * 
+     */
+    EXPECTING_BODY;
 }
