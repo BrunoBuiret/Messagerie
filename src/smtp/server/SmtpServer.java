@@ -8,6 +8,8 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
+import smtp.exceptions.SmtpConnectionInitializationException;
+import smtp.exceptions.SmtpServerInitializationException;
 import smtp.server.commands.AbstractSmtpCommand;
 import smtp.server.commands.DataCommand;
 import smtp.server.commands.ExtendedHelloCommand;
@@ -23,32 +25,36 @@ import smtp.server.commands.RecipientCommand;
 public class SmtpServer
 {
     /**
-     * 
+     * The server' socket.
      */
     protected SSLServerSocket socket;
     
     /**
-     * 
+     * The server's name.
      */
     protected String name;
     
     /**
-     * 
+     * The server's debug mode.
      */
     protected boolean debug;
     
     /**
-     * 
+     * The server' supported commands.
      */
     public Map<String, AbstractSmtpCommand> supportedCommands;
     
     /**
+     * Creates a new SMTP server.
      * 
-     * @param name
-     * @param port
-     * @param debug 
+     * @param name The server's name.
+     * @param port The server's port.
+     * @param debug The server's debug mode.
+     * @throws smtp.exceptions.SmtpServerInitializationException If the server
+     * can't be properly initialized.
      */
     public SmtpServer(String name, int port, boolean debug)
+    throws SmtpServerInitializationException
     {
         // Initialize properties
         this.name = name;
@@ -89,13 +95,19 @@ public class SmtpServer
         }
         catch(IOException ex)
         {
-            // @todo Throw exception to avoid {@code #run()} being executed.
-            Logger.getLogger(SmtpServer.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SmtpServer.class.getName()).log(
+                Level.SEVERE,
+                "Couldn't start server socket.",
+                ex
+            );
+            
+            throw new SmtpServerInitializationException(ex);
         }
     }
     
     /**
-     * 
+     * Launches the server's main loop: accepting new clients and starting their
+     * dedicated thread.
      */
     public void run()
     {
@@ -106,17 +118,25 @@ public class SmtpServer
                 SmtpConnection connection = new SmtpConnection(this, (SSLSocket) this.socket.accept());
                 connection.start();
             }
+            catch(SmtpConnectionInitializationException ex)
+            {
+                // Ignore for now
+            }
             catch (IOException ex)
             {
-                // @todo Log exception better
-                Logger.getLogger(SmtpServer.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(SmtpServer.class.getName()).log(
+                    Level.SEVERE,
+                    "Couldn't accept new connection.",
+                    ex
+                );
             }
         }
     }
     
     /**
+     * Gets the server's name.
      * 
-     * @return 
+     * @return The server's name.
      */
     public String getName()
     {
@@ -124,8 +144,9 @@ public class SmtpServer
     }
     
     /**
+     * Gets the server's port.
      * 
-     * @return 
+     * @return The server's port.
      */
     public int getPort()
     {
@@ -133,8 +154,10 @@ public class SmtpServer
     }
     
     /**
+     * Checks if the server is in debug mode or not.
      * 
-     * @return 
+     * @return <code>true</code> if the server is in debug mode, <code>false</code>
+     * otherwise.
      */
     public boolean isDebug()
     {
@@ -142,9 +165,10 @@ public class SmtpServer
     }
     
     /**
+     * Tests if a command is supported by the server, and, if so, returns it.
      * 
-     * @param command
-     * @return 
+     * @param command The command to test.
+     * @return The command if it is supported, <code>null</code> otherwise.
      */
     public AbstractSmtpCommand supportsCommand(String command)
     {
