@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import smtp.SmtpProtocol;
 
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
@@ -19,7 +20,10 @@ import javax.net.ssl.SSLSocketFactory;
  */
 public class SmtpClient
 {
-    protected enum StateEnum
+    /**
+     *
+     */
+    protected enum SmtpState
     {
         Initialisation,
         Connected,
@@ -29,28 +33,32 @@ public class SmtpClient
         EndDataTransaction,
         WaitForExitConfirm;
     };
-    
+
     /**
-     * 
+     *
      */
     protected SSLSocket socket;
-    
+
     /**
-     * 
+     *
      */
     protected BufferedOutputStream socketWriter;
-    
+
     /**
-     * 
+     *
      */
     protected BufferedInputStream socketReader;
-    
-    protected StateEnum stateEnum = StateEnum.Initialisation;
-    
+
     /**
-     * 
+     *
+     */
+    protected SmtpState currentState = SmtpState.Initialisation;
+
+    /**
+     * Creates a new SMTP client.
+     *
      * @param host
-     * @param port 
+     * @param port
      */
     public SmtpClient(InetAddress host, int port, String domain)
     {
@@ -58,25 +66,25 @@ public class SmtpClient
         {
             // Initialize vars
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            
+
             System.out.println(Arrays.toString(factory.getSupportedCipherSuites()));
-            
+
             // Create socket
             this.socket = (SSLSocket) factory.createSocket(host, port);
-            
+
             // Determine which cipher suites can be used
             this.socket.setEnabledCipherSuites(this.socket.getSupportedCipherSuites());
-            
+
             // Start handshake
             this.socket.startHandshake();
-            
+
             // Get streams
             this.socketWriter = new BufferedOutputStream(this.socket.getOutputStream());
             this.socketReader = new BufferedInputStream(this.socket.getInputStream());
-            
+
             // **
             this.sendRequest("Essai SSL\r\n");
-            
+
             this.socket.close();
         }
         catch(IOException ex)
@@ -85,10 +93,10 @@ public class SmtpClient
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     protected String readResponse()
     {
@@ -119,19 +127,19 @@ public class SmtpClient
         catch(IOException ex)
         {
             Logger.getLogger(SmtpClient.class.getName()).log(
-                Level.SEVERE,
-                "Couldn't read response from server.",
-                ex
+                    Level.SEVERE,
+                    "Couldn't read response from server.",
+                    ex
             );
         }
 
         return null;
     }
-    
+
     /**
-     * 
-     * @param request 
-     * @throws java.io.IOException 
+     *
+     * @param request
+     * @throws java.io.IOException
      */
     protected void sendRequest(String request)
     throws IOException
@@ -154,95 +162,151 @@ public class SmtpClient
         catch(IOException ex)
         {
             Logger.getLogger(SmtpClient.class.getName()).log(
-                Level.SEVERE,
-                "Couldn't send request to the server.",
-                ex
+                    Level.SEVERE,
+                    "Couldn't send request to the server.",
+                    ex
             );
 
             throw ex;
         }
     }
-    
-    protected int stateValidation(StateEnum futurState, String serverResponse)
+
+    /**
+     * 
+     * @param futureState
+     * @param serverResponse
+     * @return 
+     */
+    protected int stateValidation(SmtpState futureState, String serverResponse)
     {
+        // @todo Beware of the 354 response, create a override method with expected response?
         if(!serverResponse.startsWith("250"))
         {
             return 0;
         }
 
-        this.stateEnum = futurState;
+        this.currentState = futureState;
 
         return 1;
     }
-    
-    public int ehlo(String domain) {
-        try {
-            this.sendRequest("EHLO " + domain);
-        } catch (IOException ex) {
-            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+
+    /**
+     * Sends an extended hello greetings.
+     * 
+     * @param domain
+     * @return 
+     */
+    public int ehlo(String domain)
+    {
+        try
+        {
+            this.sendRequest("EHLO " + domain + SmtpProtocol.END_OF_LINE);
         }
-        return this.stateValidation(StateEnum.MailTransaction, this.readResponse());
-    }
-    
-    public int mailFrom(String mailAddress) {
-        try {
-            this.sendRequest("MAIL FROM " + mailAddress);
-        } catch (IOException ex) {
-            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return this.stateValidation(StateEnum.WaitForData, this.readResponse());
-    }
-    
-    public int rcptTo(String destination) {
-        try {
-            this.sendRequest("RCPT TO " + destination);
-        } catch (IOException ex) {
-            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return this.stateValidation(StateEnum.DataTransaction, this.readResponse());
-    }
-    
-    public int data() {
-        try {
-            this.sendRequest("DATA");
-        } catch (IOException ex) {
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        return this.stateValidation(StateEnum.EndDataTransaction, this.readResponse());
+        return this.stateValidation(SmtpState.MailTransaction, this.readResponse());
     }
-    
-    public int sendMailData(String mail) {
-        try {
-            this.sendRequest(mail);
-        } catch (IOException ex) {
+
+    /**
+     * Starts a transaction.
+     * 
+     * @param mailAddress
+     * @return 
+     * @todo Check greetings have already been sent.
+     */
+    public int mailFrom(String mailAddress)
+    {
+        try
+        {
+            this.sendRequest("MAIL FROM " + mailAddress + SmtpProtocol.END_OF_LINE);
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        return this.stateValidation(StateEnum.WaitForExitConfirm, this.readResponse());
+        return this.stateValidation(SmtpState.WaitForData, this.readResponse());
     }
-    
-    public int quit() {
-        try {
-            this.sendRequest("QUIT");
-        } catch (IOException ex) {
+
+    /**
+     * Adds a recipient to the current transaction.
+     * 
+     * @param recipient
+     * @return 
+     * @todo Check there is a transaction.
+     */
+    public int rcptTo(String recipient)
+    {
+        try
+        {
+            this.sendRequest("RCPT TO " + recipient + SmtpProtocol.END_OF_LINE);
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        return this.stateValidation(StateEnum.Initialisation, this.readResponse());
+        return this.stateValidation(SmtpState.DataTransaction, this.readResponse());
     }
-    
-    public void scenario() {
-        /*
-        ehlo();
-        
-        mailFrom();
-        
-        rcptto();
-        
-        data();
-        
-        quit();
-                */
+
+    /**
+     * 
+     * @return 
+     */
+    public int data()
+    {
+        try
+        {
+            this.sendRequest("DATA" + SmtpProtocol.END_OF_LINE);
+        }
+        catch(IOException ex)
+        {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return this.stateValidation(SmtpState.EndDataTransaction, this.readResponse());
+    }
+
+    /**
+     * Sends the mail's body.
+     * 
+     * @param body
+     * @return 
+     * @todo Check body ends with "CRLF.CRLF"
+     */
+    public int sendMailBody(String body)
+    {
+        try
+        {
+            this.sendRequest(body);
+        }
+        catch(IOException ex)
+        {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return this.stateValidation(SmtpState.WaitForExitConfirm, this.readResponse());
+    }
+
+    /**
+     * Closes the connection.
+     * 
+     * @return 
+     */
+    public int quit()
+    {
+        try
+        {
+            this.sendRequest("QUIT" + SmtpProtocol.END_OF_LINE);
+        }
+        catch (IOException ex)
+        {
+            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return this.stateValidation(SmtpState.Initialisation, this.readResponse());
     }
 }

@@ -8,8 +8,9 @@ package smtp.server;
 public abstract class MainServer
 {
     /**
+     * Entry point for the SMTP server.
      * 
-     * @param args 
+     * @param args Command line arguments.
      */
     public static void main(String[] args)
     {
