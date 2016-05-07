@@ -8,24 +8,25 @@ package smtp;
 public abstract class SmtpProtocol
 {
     /**
-     * 
+     * The default port for an unsecured SMTP server.
      */
     public static final int DEFAULT_SERVER_PORT = 110;
     
     /**
-     * 
+     * The default port for a secured SMTP server.
      */
     public static final int DEFAULT_SECURED_SERVER_PORT = 995;
     
     /**
-     * 
+     * Almost every requests and responses must end with these characters.
      */
     public static final String END_OF_LINE = "\r\n";
     
     /**
+     * Extracts the command name from a request.
      * 
-     * @param request
-     * @return 
+     * @param request The request to parse.
+     * @return The command name.
      */
     public static String extractCommand(String request)
     {

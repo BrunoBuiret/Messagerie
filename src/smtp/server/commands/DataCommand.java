@@ -1,6 +1,7 @@
 package smtp.server.commands;
 
 import smtp.server.SmtpConnection;
+import smtp.server.SmtpState;
 
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
@@ -9,15 +10,21 @@ import smtp.server.SmtpConnection;
  */
 public class DataCommand extends AbstractSmtpCommand
 {
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean isValid(SmtpConnection connection) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public boolean isValid(SmtpConnection connection)
+    {
+        return connection.getCurrentState().equals(SmtpState.EXPECTING_RECIPIENTS);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean handle(SmtpConnection connection, String request) {
+    public boolean handle(SmtpConnection connection, String request)
+    {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
 }

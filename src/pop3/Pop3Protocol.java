@@ -8,29 +8,30 @@ package pop3;
 public abstract class Pop3Protocol
 {
     /**
-     * 
-     */
-    public static final String RESPONSE_OK = "+OK";
-    
-    /**
-     * 
-     */
-    public static final String RESPONSE_ERROR = "-ERR";
-    
-    /**
-     * 
-     */
-    public static final String END_OF_LINE = "\r\n";
-    
-    /**
-     * 
+     * The default port of a POP3 server.
      */
     public static final int DEFAULT_SERVER_PORT = 110;
     
     /**
+     * A success response must begin with this string.
+     */
+    public static final String RESPONSE_OK = "+OK";
+    
+    /**
+     * A failure response must begin with this string.
+     */
+    public static final String RESPONSE_ERROR = "-ERR";
+    
+    /**
+     * Almost every requests and responses must end with these characters.
+     */
+    public static final String END_OF_LINE = "\r\n";
+    
+    /**
+     * Extracts the command name from a request.
      * 
-     * @param request
-     * @return 
+     * @param request The request to parse.
+     * @return The command name.
      */
     public static String extractCommand(String request)
     {

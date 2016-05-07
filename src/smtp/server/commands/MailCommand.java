@@ -17,6 +17,7 @@ import smtp.server.SmtpState;
 public class MailCommand extends AbstractSmtpCommand
 {
     /**
+     * The command pattern to fetch the sender for this transaction.
      * 
      * @see http://emailregex.com/
      */
@@ -30,8 +31,7 @@ public class MailCommand extends AbstractSmtpCommand
     @Override
     public boolean isValid(SmtpConnection connection)
     {
-        //return connection.getCurrentState().equals(SmtpState.EXPECTING_TRANSACTION);
-        return true;
+        return connection.getCurrentState().equals(SmtpState.EXPECTING_TRANSACTION);
     }
 
     /**
@@ -55,9 +55,6 @@ public class MailCommand extends AbstractSmtpCommand
                 System.out.println(matcher.group(1));
                 connection.setSenderBuffer(matcher.group(1));
                 
-                // Then, set the next state
-                connection.setCurrentState(SmtpState.EXPECTING_RECIPIENTS);
-                
                 // Build response
                 responseBuilder.append("250 OK");
                 responseBuilder.append(SmtpProtocol.END_OF_LINE);
@@ -80,6 +77,9 @@ public class MailCommand extends AbstractSmtpCommand
         try
         {
             connection.sendResponse(responseBuilder.toString());
+            
+            // And set the next state
+            connection.setCurrentState(SmtpState.EXPECTING_RECIPIENTS);
         }
         catch(IOException ex)
         {

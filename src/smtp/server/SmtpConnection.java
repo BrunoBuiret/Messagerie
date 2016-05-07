@@ -6,6 +6,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -273,8 +274,10 @@ public class SmtpConnection extends Thread
     }
 
     /**
+     * Reads a request from the client by trying to read everything available
+     * from the stream.
      * 
-     * @return
+     * @return The client's request.
      */
     public String readRequest()
     {
@@ -328,11 +331,24 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @param pattern
-     * @return
+     * Reads data from the client until a specific pattern is found.
+     * 
+     * @param pattern The pattern to look for.
+     * @return The client's request.
      */
     public String readUntil(String pattern)
+    {
+        return this.readUntil(pattern, StandardCharsets.UTF_8);
+    }
+    
+    /**
+     * Reads data from the client until a specific pattern is found.
+     * 
+     * @param pattern The pattern to look for.
+     * @param charset The charset to build the string with.
+     * @return The client's request.
+     */
+    public String readUntil(String pattern, Charset charset)
     {
         // Initialize vars
         ByteArrayOutputStream dataStream;
@@ -353,7 +369,7 @@ public class SmtpConnection extends Thread
                 }
 
                 // Build a string with the current data
-                currentData = new String(dataStream.toByteArray(), StandardCharsets.UTF_8);
+                currentData = new String(dataStream.toByteArray(), charset);
             }
             while(currentData.endsWith(pattern));
 
@@ -385,9 +401,10 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @param response
-     * @throws java.io.IOException
+     * Sends a response to the client.
+     * 
+     * @param response The response to send.
+     * @throws java.io.IOException If the response couldn't be sent.
      */
     public void sendResponse(String response)
     throws IOException
@@ -431,7 +448,7 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     * Gets a connection's reference to the server.
+     * Gets the connection's reference to the server.
      *
      * @return The server.
      */
@@ -441,7 +458,7 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     * Gets a connection's current state.
+     * Gets the connection's current state.
      *
      * @return The current state.
      */
@@ -451,7 +468,7 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     * Sets a connection's current state.
+     * Sets the connection's current state.
      *
      * @param state The state.
      */
@@ -461,8 +478,9 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @return
+     * Gets the connection' sender buffer.
+     * 
+     * @return The sender buffer.
      */
     public String getSenderBuffer()
     {
@@ -470,8 +488,9 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @param senderBuffer
+     * Sets the connection' sender buffer.
+     * 
+     * @param senderBuffer The sender buffer.
      */
     public void setSenderBuffer(String senderBuffer)
     {
@@ -479,8 +498,9 @@ public class SmtpConnection extends Thread
     }
 
     /**
+     * Gets the connection's recipients buffer.
      *
-     * @return
+     * @return The recipients buffer.
      */
     public Set<String> getRecipientsBuffer()
     {
@@ -493,8 +513,9 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @param recipientsBuffer
+     * Sets the connection's recipients buffer.
+     * 
+     * @param recipientsBuffer The recipients buffer.
      */
     public void setRecipientsBuffer(Set<String> recipientsBuffer)
     {
@@ -502,8 +523,9 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @return
+     * Gets the connection's body buffer.
+     * 
+     * @return The body buffer.
      */
     public StringBuilder getBodyBuffer()
     {
@@ -516,8 +538,9 @@ public class SmtpConnection extends Thread
     }
 
     /**
-     *
-     * @param bodyBuffer
+     * Sets the connection's body buffer.
+     * 
+     * @param bodyBuffer The body buffer.
      */
     public void setBodyBuffer(StringBuilder bodyBuffer)
     {

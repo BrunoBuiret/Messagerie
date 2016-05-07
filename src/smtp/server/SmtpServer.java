@@ -144,16 +144,6 @@ public class SmtpServer
     }
     
     /**
-     * Gets the server's port.
-     * 
-     * @return The server's port.
-     */
-    public int getPort()
-    {
-        return this.socket.getLocalPort();
-    }
-    
-    /**
      * Checks if the server is in debug mode or not.
      * 
      * @return <code>true</code> if the server is in debug mode, <code>false</code>

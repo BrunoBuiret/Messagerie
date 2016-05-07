@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
+import pop3.exceptions.Pop3ConnectionInitializationException;
+import pop3.exceptions.Pop3ServerInitializationException;
 import pop3.server.commands.AbstractPop3Command;
 import pop3.server.commands.ApopCommand;
 import pop3.server.commands.DeleteCommand;
@@ -28,42 +30,45 @@ import pop3.server.commands.UserCommand;
 public class Pop3Server
 {
     /**
-     * 
+     * The server' socket.
      */
     protected SSLServerSocket socket;
-    
+
     /**
-     * 
+     * The server's name.
      */
     protected String name;
-    
+
     /**
-     * 
+     * The server's debug mode.
      */
     protected boolean debug;
-    
+
     /**
-     * 
+     * The mailboxes' path.
      */
     protected File mailBoxesPath;
-    
+
     /**
-     * 
+     * The server's secret to use with the <code>APOP</code> command.
      */
     protected String secret;
-    
+
     /**
-     * 
+     * The commands available to the user.
      */
     protected Map<String, AbstractPop3Command> supportedCommands;
-    
+
     /**
-     * 
-     * @param name
-     * @param port
-     * @param debug
-     * @param mailBoxesPath
-     * @param secret 
+     * Creates a new POP3 server.
+     *
+     * @param name The server's name.
+     * @param port The server's port.
+     * @param debug The server's debug mode.
+     * @param mailBoxesPath The mailboxes' path.
+     * @param secret The server's secret to use with the <code>APOP</code> command.
+     * @throws pop3.exceptions.Pop3ServerInitializationException If the server can't
+     * be properly initialized.
      */
     public Pop3Server(String name, int port, boolean debug, File mailBoxesPath, String secret)
     {
@@ -72,10 +77,10 @@ public class Pop3Server
         this.debug = debug;
         this.mailBoxesPath = mailBoxesPath;
         this.secret = secret;
-        
+
         // Register supported commands
         this.supportedCommands = new HashMap<>();
-        
+
         this.supportedCommands.put(
             "QUIT",
             new QuitCommand()
@@ -112,25 +117,31 @@ public class Pop3Server
             "RSET",
             new ResetCommand()
         );
-        
+
         // Start server
         try
         {
             // Initialize vars
             SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-            
+
             // Create socket
             this.socket = (SSLServerSocket) factory.createServerSocket(port);
         }
         catch(IOException ex)
         {
-            // @todo Throw exception to avoid {@code #run()} being executed.
-            Logger.getLogger(Pop3Server.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Pop3Server.class.getName()).log(
+                Level.SEVERE,
+                "Couldn't start server socket",
+                ex
+            );
+            
+            throw new Pop3ServerInitializationException(ex);
         }
     }
-    
+
     /**
-     * 
+     * Launches the server's main loop: accepting new clients and starting their
+     * dedicated thread.
      */
     public void run()
     {
@@ -141,50 +152,62 @@ public class Pop3Server
                 Pop3Connection connection = new Pop3Connection(this, (SSLSocket) this.socket.accept());
                 connection.start();
             }
-            catch (IOException ex)
+            catch(Pop3ConnectionInitializationException ex)
             {
-                // @todo Log exception better
-                Logger.getLogger(Pop3Server.class.getName()).log(Level.SEVERE, null, ex);
+                // Ignore for now
+            }
+            catch(IOException ex)
+            {
+                Logger.getLogger(Pop3Server.class.getName()).log(
+                    Level.SEVERE,
+                    "Couldn't accept new connection.",
+                    ex
+                );
             }
         }
     }
-    
+
     /**
-     * 
-     * @return 
+     * Gets the server's name.
+     *
+     * @return The server's name.
      */
     public String getName()
     {
         return this.name;
     }
-    
+
     /**
-     * 
-     * @return 
+     * Checks if the server is in debug mode or not.
+     *
+     * @return <code>true</code> if the server is in debug mode, <code>false</code>
+     * otherwise.
      */
     public boolean isDebug()
     {
         return this.debug;
     }
-    
+
     /**
-     * 
-     * @return 
+     * Gets the mailboxes' path.
+     *
+     * @return The mailboxes' path.
      */
     public File getMailBoxesPath()
     {
         return this.mailBoxesPath;
     }
-    
+
     /**
-     * 
-     * @return 
+     * Gets the server' secret.
+     *
+     * @return The server' secret.
      */
     public String getSecret()
     {
         return this.secret;
     }
-    
+
     /**
      * Gets a command if it is supported.
      *

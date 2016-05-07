@@ -1,5 +1,7 @@
 package smtp.server;
 
+import smtp.exceptions.SmtpServerInitializationException;
+
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
  * @author Thomas Arnaud (thomas.arnaud@etu.univ-lyon1.fr)
@@ -14,7 +16,13 @@ public abstract class MainServer
      */
     public static void main(String[] args)
     {
-       SmtpServer server = new SmtpServer("univ-lyon1.fr", 9999, true);
-       server.run();
+        try
+        {
+            SmtpServer server = new SmtpServer("univ-lyon1.fr", 9999, true);
+            server.run();
+        }
+        catch(SmtpServerInitializationException ex)
+        {
+        }
     }
 }

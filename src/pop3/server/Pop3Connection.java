@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLSocket;
 import pop3.Pop3Protocol;
+import pop3.exceptions.Pop3ConnectionInitializationException;
 import pop3.server.commands.AbstractPop3Command;
 
 /**
@@ -27,46 +28,50 @@ import pop3.server.commands.AbstractPop3Command;
 public class Pop3Connection extends Thread
 {
     /**
-     * 
+     * A reference to the POP3 server.
      */
     protected Pop3Server server;
-    
+
     /**
-     * 
+     * The connection' socket.
      */
     protected SSLSocket socket;
-    
+
     /**
-     * 
+     * The connection's output stream.
      */
     protected BufferedOutputStream socketWriter;
-    
+
     /**
-     * 
+     * The connection's input stream.
      */
     protected BufferedInputStream socketReader;
-    
+
     /**
-     * 
+     * The connection's current state.
      */
     protected Pop3State currentState;
-    
+
     /**
-     * 
+     * The associated mailbox.
      */
     protected MailBox mailBox;
-    
+
     /**
-     * 
+     * The security digest for this connection.
      */
     protected String securityDigest;
-    
+
     /**
+     * Creates a new POP3 connection.
      * 
-     * @param server
-     * @param socket 
+     * @param server A reference to the POP3 server.
+     * @param socket The newly accepted socket.
+     * @throws pop3.exceptions.Pop3ConnectionInitializationException If the connection can't
+     * be properly initialized.
      */
     public Pop3Connection(Pop3Server server, SSLSocket socket)
+    throws Pop3ConnectionInitializationException
     {
         // Initialize properties
         this.server = server;
@@ -74,7 +79,7 @@ public class Pop3Connection extends Thread
         this.currentState = Pop3State.INITIALIZATION;
         this.mailBox = null;
         this.securityDigest = null;
-        
+
         // Set up socket
         try
         {
@@ -88,32 +93,37 @@ public class Pop3Connection extends Thread
                 .forEach((cipherSuite) -> {
                     usableCipherSuites.add(cipherSuite);
             });
-            
+
             this.socket.setEnabledCipherSuites(usableCipherSuites.toArray(new String[usableCipherSuites.size()]));
-            
+
             // Start handshake
             this.socket.startHandshake();
-            
+
             // Get streams
             this.socketWriter = new BufferedOutputStream(this.socket.getOutputStream());
             this.socketReader = new BufferedInputStream(this.socket.getInputStream());
         }
         catch(IOException ex)
         {
-            // @todo Throw exception to avoid {@code #run()} being executed.
-            Logger.getLogger(Pop3Connection.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Pop3Connection.class.getName()).log(
+                Level.SEVERE,
+                "Couldn't start connection socket.",
+                ex
+            );
+            
+            throw new Pop3ConnectionInitializationException(ex);
         }
     }
-    
+
     /**
-     * 
+     * The connection's main loop.
      */
     @Override
     public void run()
     {
-        // Initialize some vars
+        // Initialize vars
         StringBuilder responseBuilder;
-        
+
         // Indicate the connection has been established
         try
         {
@@ -123,7 +133,7 @@ public class Pop3Connection extends Thread
             responseBuilder.append(" ");
             responseBuilder.append(this.server.getName());
             responseBuilder.append(" POP3 server ready");
-            
+
             // Compute security digest if possible
             try
             {
@@ -152,7 +162,7 @@ public class Pop3Connection extends Thread
                 }
 
                 this.securityDigest = digestBuilder.toString();
-                
+
                 // Add the data needed to build the security digest for the client
                 responseBuilder.append(" <");
                 responseBuilder.append(processId);
@@ -173,13 +183,13 @@ public class Pop3Connection extends Thread
                     ex
                 );
             }
-            
+
             // End the greetings
             responseBuilder.append(Pop3Protocol.END_OF_LINE);
 
             // Then, send it
             this.sendResponse(responseBuilder.toString());
-            
+
             // Finally, clear the builder
             responseBuilder = null;
 
@@ -193,30 +203,30 @@ public class Pop3Connection extends Thread
                 "Couldn't send greetings.",
                 ex
             );
-            
+
             // Close the socket
             this.closeSocket();
 
             // Then, finish the thread
             return;
         }
-        
+
         // Initialize some more vars for the main loop
         String request;
         AbstractPop3Command command;
         boolean keepLooping = true;
-        
+
         // Main loop
         do
         {
             // Read the client's request
             request = this.readRequest();
-            
+
             if(null != request && !request.isEmpty())
             {
                 // Extract the command from the request
                 command = this.server.supportsCommand(Pop3Protocol.extractCommand(request));
-                
+
                 // Is the command supported?
                 if(null != command)
                 {
@@ -288,13 +298,13 @@ public class Pop3Connection extends Thread
             }
         }
         while(keepLooping);
-        
+
         // The loop has reached its end, close the socket and end the thread
         this.closeSocket();
     }
-    
+
     /**
-     * 
+     * Factorized method to close the connection' socket.
      */
     protected void closeSocket()
     {
@@ -311,10 +321,12 @@ public class Pop3Connection extends Thread
             );
         }
     }
-    
+
     /**
-     * 
-     * @return 
+     * Reads a request from the client by trying to read everything available
+     * from the stream.
+     *
+     * @return The client's request.
      */
     protected String readRequest()
     {
@@ -366,11 +378,12 @@ public class Pop3Connection extends Thread
 
         return null;
     }
-    
+
     /**
-     * 
-     * @param response 
-     * @throws java.io.IOException 
+     * Sends a response to the client.
+     *
+     * @param response The response to send.
+     * @throws java.io.IOException If the response couldn't be sent.
      */
     public void sendResponse(String response)
     throws IOException
@@ -412,9 +425,9 @@ public class Pop3Connection extends Thread
             throw ex;
         }
     }
-    
+
     /**
-     * Gets a connection's reference to the server.
+     * Gets the connection's reference to the server.
      *
      * @return The server.
      */
@@ -424,7 +437,7 @@ public class Pop3Connection extends Thread
     }
 
     /**
-     * Gets a connection's current state.
+     * Gets the connection's current state.
      *
      * @return The current state.
      */
@@ -434,7 +447,7 @@ public class Pop3Connection extends Thread
     }
 
     /**
-     * Sets a connection's current state.
+     * Sets the connection's current state.
      *
      * @param state The state.
      */

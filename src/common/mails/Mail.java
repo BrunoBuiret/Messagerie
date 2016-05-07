@@ -132,6 +132,7 @@ public class Mail
      * 
      * @param charset
      * @return 
+     * @todo
      */
     public byte[] getBytes(Charset charset)
     {
