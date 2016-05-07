@@ -1,5 +1,7 @@
 package smtp.server;
 
+import common.mails.MailBox;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +42,11 @@ public class SmtpServer
     protected boolean debug;
     
     /**
+     * The mailboxes' path.
+     */
+    protected File mailBoxesPath;
+    
+    /**
      * The server' supported commands.
      */
     public Map<String, AbstractSmtpCommand> supportedCommands;
@@ -50,15 +57,17 @@ public class SmtpServer
      * @param name The server's name.
      * @param port The server's port.
      * @param debug The server's debug mode.
+     * @param mailBoxesPath The mailboxes' path.
      * @throws smtp.exceptions.SmtpServerInitializationException If the server
      * can't be properly initialized.
      */
-    public SmtpServer(String name, int port, boolean debug)
+    public SmtpServer(String name, int port, boolean debug, File mailBoxesPath)
     throws SmtpServerInitializationException
     {
         // Initialize properties
         this.name = name;
         this.debug = debug;
+        this.mailBoxesPath = mailBoxesPath;
         
         // Register supported commands
         this.supportedCommands = new HashMap<>();
@@ -152,6 +161,36 @@ public class SmtpServer
     public boolean isDebug()
     {
         return this.debug;
+    }
+    
+    /**
+     * Gets an existing mailbox.
+     * 
+     * @param userName The associated username.
+     * @return The mailbox if it exists, <code>null</code> otherwise.
+     */
+    public MailBox getMailBox(String userName)
+    {
+        // Initialize vars
+        File mailBoxFile = new File(this.mailBoxesPath, userName + ".mbox");
+        MailBox mailBox = new MailBox(mailBoxFile);
+        
+        try
+        {
+            mailBox.load();
+            
+            return mailBox;
+        }
+        catch(Exception ex)
+        {
+            Logger.getLogger(SmtpServer.class.getName()).log(
+                Level.SEVERE,
+                "Couldn't get mailbox.",
+                ex
+            );
+            
+            return null;
+        }
     }
     
     /**

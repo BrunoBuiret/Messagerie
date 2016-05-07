@@ -49,21 +49,23 @@ public class RecipientCommand extends AbstractSmtpCommand
 
             if(matcher.matches())
             {
-                // Store the recipient in the associated buffer
+                // Initialize some more vars
                 Set<String> recipientsBuffer = connection.getRecipientsBuffer();
+                String recipient = matcher.group(1);
                 
+                // Store the recipient in the associated buffer
                 if(!recipientsBuffer.contains(matcher.group(1)))
                 {
-                    recipientsBuffer.add(matcher.group(1));
+                    recipientsBuffer.add(recipient);
+                    
+                    // Build response
+                    responseBuilder.append("250 OK");
+                    responseBuilder.append(Pop3Protocol.END_OF_LINE);
                 }
                 else
                 {
                     
                 }
-                
-                // Build response
-                responseBuilder.append("250 OK");
-                responseBuilder.append(Pop3Protocol.END_OF_LINE);
             }
             else
             {
