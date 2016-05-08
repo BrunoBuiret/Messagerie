@@ -33,20 +33,20 @@ public class MailBox
      * The associated file's path.
      */
     protected File path;
-    
+
     /**
-     * 
+     *
      */
     protected List<Mail> mailsList;
-    
+
     /**
-     * 
+     *
      */
     protected List<Mail> mailsToDeleteList;
-    
+
     /**
      * Creates a new mailbox associated with a given file.
-     * 
+     *
      * @param path The associated file's path.
      */
     public MailBox(File path)
@@ -56,33 +56,33 @@ public class MailBox
         this.mailsList = new ArrayList<>();
         this.mailsToDeleteList = new ArrayList<>();
     }
-    
+
     /**
      * Gets the mailbox's path.
-     * 
+     *
      * @return The mailbox's path.
      */
     public File getPath()
     {
         return this.path;
     }
-    
+
     /**
      * Gets this mailbox' username.
-     * 
+     *
      * @return The mailbox' username.
      */
     public String getUserName()
     {
         String name = this.path.getName();
-        
+
         return name.substring(0, name.indexOf(".mbox"));
     }
-    
+
     /**
      * Saves the contents of the mailbox in its associated file, overwriting
      * everything.
-     * 
+     *
      * @throws common.mails.exceptions.FailedMailBoxUpdateException If the
      * mailbox couldn't be saved.
      * @throws java.io.FileNotFoundException If the mailbox doesn't exist.
@@ -108,7 +108,7 @@ public class MailBox
                 this.path.getAbsolutePath()
             ));
         }
-        
+
         // Remove the emails marked for deletion but clone it first in case of a bug
         List<Mail> clonedMailsList = new ArrayList<>(this.mailsList);
         this.mailsList.removeAll(this.mailsToDeleteList);
@@ -220,11 +220,11 @@ public class MailBox
             }
         }
     }
-    
+
     /**
      * Loads the content of the mailbox from its associated file using UTF-8 by
      * default.
-     * 
+     *
      * @throws common.mails.exceptions.UnknownMailBoxException If the mailbox
      * doesn't exist.
      * @throws java.io.FileNotFoundException If the mailbox doesn't exist.
@@ -236,10 +236,10 @@ public class MailBox
     {
         this.load(StandardCharsets.UTF_8);
     }
-    
+
     /**
      * Loads the content of the mailbox from its associated file.
-     * 
+     *
      * @param charset The charset to build the strings with.
      * @throws common.mails.exceptions.UnknownMailBoxException If the mailbox
      * doesn't exist.
@@ -384,7 +384,7 @@ public class MailBox
                 ),
                 ex
             );
-            
+
             throw ex;
         }
         finally
@@ -409,30 +409,30 @@ public class MailBox
             }
         }
     }
-    
+
     /**
      * Gets the number of mails, including those marked for deletion, in this mailbox.
-     * 
+     *
      * @return The number of mails.
      */
     public int getSize()
     {
         return this.mailsList.size();
     }
-    
+
     /**
      * Adds a mail to the mailbox, which will need to be saved later.
-     * 
+     *
      * @param mail The mail to add.
      */
     public void add(Mail mail)
     {
         this.mailsList.add(mail);
     }
-    
+
     /**
      * Get a mail by its index.
-     * 
+     *
      * @param index The mail's index.
      * @return The mail if it exists.
      * @throws common.mails.exceptions.MarkedForDeletionException If the mail has been
@@ -466,20 +466,20 @@ public class MailBox
             ));
         }
     }
-    
+
     /**
      * Gets the list of every mail, including those marked for deletion.
-     * 
+     *
      * @return The list of mails.
      */
     public List<Mail> getAll()
     {
         return this.mailsList;
     }
-    
+
     /**
      * Marks a mail for deletion if it hasn't been already.
-     * 
+     *
      * @param index The mail's index.
      */
     public void delete(int index)
@@ -496,10 +496,10 @@ public class MailBox
             ));
         }
     }
-    
+
     /**
      * Marks a mail for deletion if it hasn't been already.
-     * 
+     *
      * @param mail The mail to mark.
      */
     public void delete(Mail mail)
@@ -516,7 +516,41 @@ public class MailBox
             ));
         }
     }
-    
+
+    /**
+     * Tests if a mail is marked for deletion.
+     *
+     * @param index The mail's index.
+     * @return <code>true</code> if it supposed to be deleted,
+     * <code>false</code> otherwise.
+     */
+    public boolean isDeleted(int index)
+    {
+        if(index < this.mailsList.size())
+        {
+            return this.isDeleted(this.mailsList.get(index));
+        }
+        else
+        {
+            throw new NonExistentMailException(String.format(
+                "Mail #%d doesn't exist.",
+                index
+            ));
+        }
+    }
+
+    /**
+     * Tests if a mail is marked for deletion.
+     *
+     * @param mail The mail to test.
+     * @return <code>true</code> if it supposed to be deleted,
+     * <code>false</code> otherwise.
+     */
+    public boolean isDeleted(Mail mail)
+    {
+        return this.mailsToDeleteList.contains(mail);
+    }
+
     /**
      * Resets the mailbox by unmarking the mails marked for deletion.
      */

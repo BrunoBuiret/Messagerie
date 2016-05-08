@@ -13,15 +13,17 @@ public class QuitCommand extends AbstractPop3Command
      * {@inheritDoc}
      */
     @Override
-    public boolean isValid(Pop3Connection connection) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public boolean isValid(Pop3Connection connection)
+    {
+        return true;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean handle(Pop3Connection connection, String request) {
+    public boolean handle(Pop3Connection connection, String request)
+    {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
