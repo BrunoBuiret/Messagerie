@@ -64,7 +64,7 @@ public class SmtpConnection extends Thread
     /**
      * The body buffer for transactions.
      */
-    protected StringBuilder bodyBuffer;
+    protected String bodyBuffer;
 
     /**
      * Creates a new SMTP connection.
@@ -527,13 +527,8 @@ public class SmtpConnection extends Thread
      * 
      * @return The body buffer.
      */
-    public StringBuilder getBodyBuffer()
+    public String getBodyBuffer()
     {
-        if(null == this.bodyBuffer)
-        {
-            this.bodyBuffer = new StringBuilder();
-        }
-
         return this.bodyBuffer;
     }
 
@@ -542,7 +537,7 @@ public class SmtpConnection extends Thread
      * 
      * @param bodyBuffer The body buffer.
      */
-    public void setBodyBuffer(StringBuilder bodyBuffer)
+    public void setBodyBuffer(String bodyBuffer)
     {
         this.bodyBuffer = bodyBuffer;
     }

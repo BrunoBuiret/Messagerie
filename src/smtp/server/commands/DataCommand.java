@@ -1,5 +1,12 @@
 package smtp.server.commands;
 
+import common.mails.Mail;
+import common.mails.MailBox;
+import java.io.IOException;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import smtp.SmtpProtocol;
 import smtp.server.SmtpConnection;
 import smtp.server.SmtpState;
 
@@ -25,6 +32,107 @@ public class DataCommand extends AbstractSmtpCommand
     @Override
     public boolean handle(SmtpConnection connection, String request)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // Initialize vars
+        StringBuilder responseBuilder = new StringBuilder();
+        
+        // Is there at least one valid recipient?
+        if(connection.getRecipientsBuffer().size() > 0)
+        {
+            // Build response to notice the client
+            responseBuilder.append("354 Start mail input; end with <CRLF>.<CRLF>");
+            responseBuilder.append(SmtpProtocol.END_OF_LINE);
+
+            // Then, send the response
+            try
+            {
+                connection.sendResponse(responseBuilder.toString());
+
+                // And set the next state
+                connection.setCurrentState(SmtpState.EXPECTING_BODY);
+            }
+            catch(IOException ex)
+            {
+                Logger.getLogger(DataCommand.class.getName()).log(
+                    Level.SEVERE,
+                    "Start of data response couldn't be sent.",
+                    ex
+                );
+            }
+            
+            if(connection.getCurrentState().equals(SmtpState.EXPECTING_BODY))
+            {
+                // Try reading the body
+                String data = connection.readUntil("\r\n.\r\n");
+                
+                if(null != data)
+                {
+                    // Body has been successfully read, save it
+                    connection.setBodyBuffer(data);
+                    
+                    // Initialize some more vars
+                    Set<String> recipientsBuffer = connection.getRecipientsBuffer();
+                    MailBox mailBox;
+                    Mail mail = Mail.parse(data);
+                    
+                    // Add the mail to every recipient
+                    for(String recipient : recipientsBuffer)
+                    {
+                        mailBox = connection.getServer().getMailBox(recipient);
+                        
+                        if(null != mailBox)
+                        {
+                            mailBox.add(mail);
+                        }
+                    }
+                    
+                    // And set the next state
+                    connection.setCurrentState(SmtpState.EXPECTING_TRANSACTION);
+                    
+                    // Then, send a response
+                    responseBuilder = new StringBuilder();
+                    responseBuilder.append("250 OK");
+                    responseBuilder.append(SmtpProtocol.END_OF_LINE);
+                    
+                    try
+                    {
+                        connection.sendResponse(responseBuilder.toString());
+                    }
+                    catch(IOException ex)
+                    {
+                        Logger.getLogger(DataCommand.class.getName()).log(
+                            Level.SEVERE,
+                            "End of data response couldn't be sent.",
+                            ex
+                        );
+                    }
+                }
+                else
+                {
+                    
+                }
+            }
+        }
+        else
+        {
+            // Build response
+            responseBuilder.append("554 No valid recipients");
+            responseBuilder.append(SmtpProtocol.END_OF_LINE);
+
+            // Then, send it
+            try
+            {
+                connection.sendResponse(responseBuilder.toString());
+            }
+            catch(IOException ex)
+            {
+                Logger.getLogger(DataCommand.class.getName()).log(
+                    Level.SEVERE,
+                    "Data error response couldn't be sent.",
+                    ex
+                );
+            }
+        }
+        
+        return true;
     }
 }
