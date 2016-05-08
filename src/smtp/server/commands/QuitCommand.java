@@ -45,7 +45,7 @@ public class QuitCommand extends AbstractSmtpCommand
         }
         catch(IOException ex)
         {
-            Logger.getLogger(ExtendedHelloCommand.class.getName()).log(
+            Logger.getLogger(QuitCommand.class.getName()).log(
                 Level.SEVERE,
                 "Quit response couldn't be sent.",
                 ex

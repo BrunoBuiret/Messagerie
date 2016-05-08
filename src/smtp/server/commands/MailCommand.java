@@ -86,7 +86,7 @@ public class MailCommand extends AbstractSmtpCommand
         }
         catch(IOException ex)
         {
-            Logger.getLogger(ExtendedHelloCommand.class.getName()).log(
+            Logger.getLogger(MailCommand.class.getName()).log(
                 Level.SEVERE,
                 "Start of transaction response couldn't be sent.",
                 ex

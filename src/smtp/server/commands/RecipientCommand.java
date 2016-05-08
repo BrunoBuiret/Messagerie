@@ -1,6 +1,9 @@
 package smtp.server.commands;
 
+import java.io.IOException;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import smtp.SmtpProtocol;
@@ -92,6 +95,20 @@ public class RecipientCommand extends AbstractSmtpCommand
             // Inform the user the syntax is incorrect
             responseBuilder.append("501 Syntax error in parameters or arguments");
             responseBuilder.append(SmtpProtocol.END_OF_LINE);
+        }
+        
+        // Then, send the response
+        try
+        {
+            connection.sendResponse(responseBuilder.toString());
+        }
+        catch(IOException ex)
+        {
+            Logger.getLogger(RecipientCommand.class.getName()).log(
+                Level.SEVERE,
+                "Response couldn't be sent.",
+                ex
+            );
         }
 
         return true;
