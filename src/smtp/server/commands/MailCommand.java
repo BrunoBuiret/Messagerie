@@ -61,6 +61,9 @@ public class MailCommand extends AbstractSmtpCommand
                 // Build response
                 responseBuilder.append("250 OK");
                 responseBuilder.append(SmtpProtocol.END_OF_LINE);
+                
+                // And set the next state
+                connection.setCurrentState(SmtpState.EXPECTING_RECIPIENTS);
             }
             else
             {
@@ -80,9 +83,6 @@ public class MailCommand extends AbstractSmtpCommand
         try
         {
             connection.sendResponse(responseBuilder.toString());
-
-            // And set the next state
-            connection.setCurrentState(SmtpState.EXPECTING_RECIPIENTS);
         }
         catch(IOException ex)
         {

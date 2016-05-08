@@ -48,13 +48,13 @@ public class ExtendedHelloCommand extends AbstractSmtpCommand
         
         responseBuilder.append(SmtpProtocol.END_OF_LINE);
         
+        // And set the next state
+        connection.setCurrentState(SmtpState.EXPECTING_TRANSACTION);
+        
         // Then, send it
         try
         {
             connection.sendResponse(responseBuilder.toString());
-            
-            // And set the next state
-            connection.setCurrentState(SmtpState.EXPECTING_TRANSACTION);
         }
         catch(IOException ex)
         {
