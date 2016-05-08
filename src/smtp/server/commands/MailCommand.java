@@ -18,13 +18,13 @@ public class MailCommand extends AbstractSmtpCommand
 {
     /**
      * The command pattern to fetch the sender for this transaction.
-     * 
+     *
      * @see http://emailregex.com/
      */
     protected static final Pattern COMMAND_PATTERN = Pattern.compile(
         "MAIL FROM:<((?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\]))>"
     );
-    
+
     /**
      * {@inheritDoc}
      */
@@ -42,7 +42,7 @@ public class MailCommand extends AbstractSmtpCommand
     {
         // Initialize vars
         StringBuilder responseBuilder = new StringBuilder();
-        
+
         // Is the syntax valid?
         if(request.startsWith("MAIL FROM:"))
         {
@@ -52,9 +52,12 @@ public class MailCommand extends AbstractSmtpCommand
             if(matcher.matches())
             {
                 // Store the sender in the associated buffer
-                System.out.println(matcher.group(1));
                 connection.setSenderBuffer(matcher.group(1));
-                
+
+                // And clear the others
+                connection.setBodyBuffer(null);
+                connection.setRecipientsBuffer(null);
+
                 // Build response
                 responseBuilder.append("250 OK");
                 responseBuilder.append(SmtpProtocol.END_OF_LINE);
@@ -72,12 +75,12 @@ public class MailCommand extends AbstractSmtpCommand
             responseBuilder.append("501 Syntax error in parameters or arguments");
             responseBuilder.append(SmtpProtocol.END_OF_LINE);
         }
-        
+
         // Then, send the response
         try
         {
             connection.sendResponse(responseBuilder.toString());
-            
+
             // And set the next state
             connection.setCurrentState(SmtpState.EXPECTING_RECIPIENTS);
         }
@@ -89,7 +92,7 @@ public class MailCommand extends AbstractSmtpCommand
                 ex
             );
         }
-        
+
         return true;
     }
 }
