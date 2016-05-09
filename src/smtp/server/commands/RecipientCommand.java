@@ -48,7 +48,7 @@ public class RecipientCommand extends AbstractSmtpCommand
         if(request.startsWith("RCPT TO:"))
         {
             // Has the recipient's email been given?
-            Matcher matcher = MailCommand.COMMAND_PATTERN.matcher(request);
+            Matcher matcher = RecipientCommand.PATTERN_TO.matcher(request);
 
             if(matcher.matches())
             {
@@ -56,35 +56,50 @@ public class RecipientCommand extends AbstractSmtpCommand
                 Set<String> recipientsBuffer = connection.getRecipientsBuffer();
                 String recipientAddress = matcher.group(1);
                 String recipient = recipientAddress.substring(0, recipientAddress.indexOf("@"));
-
-                if(!recipientsBuffer.contains(recipient))
+                String domain = recipientAddress.substring(recipientAddress.indexOf("@") + 1);
+                
+                if(domain.equals(connection.getServer().getName()))
                 {
-                    // This recipient hasn't already been added
-                    if(null != connection.getServer().getMailBox(recipient))
+                    if(!recipientsBuffer.contains(recipient))
                     {
-                        // This user exists, register them
-                        recipientsBuffer.add(recipient);
+                        // This recipient hasn't already been added
+                        if(null != connection.getServer().getMailBox(recipient))
+                        {
+                            // This user exists, register them
+                            recipientsBuffer.add(recipient);
 
-                        // Build response
-                        responseBuilder.append("250 OK");
-                        responseBuilder.append(SmtpProtocol.END_OF_LINE);
+                            // Build response
+                            responseBuilder.append("250 OK");
+                            responseBuilder.append(SmtpProtocol.END_OF_LINE);
+                        }
+                        else
+                        {
+                            System.out.println("Doesn't exist");
+                            // This user doesn't exist
+                            responseBuilder.append("551 User not local");
+                            responseBuilder.append(SmtpProtocol.END_OF_LINE);
+                        }
                     }
                     else
                     {
-                        // This user doesn't exist
-                        responseBuilder.append("551 User not local");
+                        System.out.println("Already exists");
+                        // This recipient has already been added
+                        responseBuilder.append("501 Syntax error in parameters or arguments");
                         responseBuilder.append(SmtpProtocol.END_OF_LINE);
                     }
                 }
                 else
                 {
-                    // This recipient has already been added
-                    responseBuilder.append("501 Syntax error in parameters or arguments");
+                    System.out.println("Not good domain");
+                    // This user doesn't exist here
+                    responseBuilder.append("551 User not local");
                     responseBuilder.append(SmtpProtocol.END_OF_LINE);
+                    
                 }
             }
             else
             {
+                System.out.println("No matches");
                 // Inform the user the email is invalid
                 responseBuilder.append("501 Syntax error in parameters or arguments");
                 responseBuilder.append(SmtpProtocol.END_OF_LINE);
@@ -92,6 +107,7 @@ public class RecipientCommand extends AbstractSmtpCommand
         }
         else
         {
+            System.out.println("Not starts with");
             // Inform the user the syntax is incorrect
             responseBuilder.append("501 Syntax error in parameters or arguments");
             responseBuilder.append(SmtpProtocol.END_OF_LINE);

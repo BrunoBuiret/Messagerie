@@ -2,6 +2,8 @@ package smtp.server.commands;
 
 import common.mails.Mail;
 import common.mails.MailBox;
+import common.mails.exceptions.FailedMailBoxUpdateException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Set;
 import java.util.logging.Level;
@@ -73,6 +75,7 @@ public class DataCommand extends AbstractSmtpCommand
                     Set<String> recipientsBuffer = connection.getRecipientsBuffer();
                     MailBox mailBox;
                     Mail mail = Mail.parse(data);
+                    boolean errorHappened = false;
                     
                     // build the header from the previous commands
                     String sender = connection.getSenderBuffer();
@@ -91,6 +94,25 @@ public class DataCommand extends AbstractSmtpCommand
                         if(null != mailBox)
                         {
                             mailBox.add(mail);
+                            
+                            try
+                            {
+                                mailBox.save();
+                            }
+                            catch(IllegalArgumentException | FailedMailBoxUpdateException ex)
+                            {
+                                Logger.getLogger(DataCommand.class.getName()).log(
+                                    Level.SEVERE,
+                                    "Couldn't save mailbox.",
+                                    ex
+                                );
+                                
+                                errorHappened = true;
+                            }
+                            catch(FileNotFoundException ex)
+                            {
+                                // This exception isn't supposed to happen
+                            }
                         }
                     }
                     
@@ -99,7 +121,11 @@ public class DataCommand extends AbstractSmtpCommand
                     
                     // Then, send a response
                     responseBuilder = new StringBuilder();
-                    responseBuilder.append("250 OK");
+                    responseBuilder.append(
+                        !errorHappened
+                            ? "250 OK"
+                            : "451 Requested action aborted: local error in processing"
+                    );
                     responseBuilder.append(SmtpProtocol.END_OF_LINE);
                     
                     try
