@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLSocket;
@@ -18,12 +17,13 @@ import smtp.SmtpProtocol;
  * @author Thomas Arnaud (thomas.arnaud@etu.univ-lyon1.fr)
  * @author Alexis Rabilloud (alexis.rabilloud@etu.univ-lyon1.fr)
  */
-public class SmtpClient {
-
+public class SmtpClient
+{
     /**
      *
      */
-    protected enum SmtpState {
+    protected enum SmtpState
+    {
         Initialisation,
         Connected,
         MailTransaction,
@@ -59,8 +59,10 @@ public class SmtpClient {
      * @param host
      * @param port
      */
-    public SmtpClient(InetAddress host, int port, String domain) {
-        try {
+    public SmtpClient(InetAddress host, int port)
+    {
+        try
+        {
             // Initialize vars
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
 
@@ -77,43 +79,53 @@ public class SmtpClient {
             this.socketWriter = new BufferedOutputStream(this.socket.getOutputStream());
             this.socketReader = new BufferedInputStream(this.socket.getInputStream());
 
-        } catch (IOException ex) {
+            // Reads the greetings from the server
+            this.readResponse();
+        }
+        catch(IOException ex)
+        {
             // @todo Throw exception to avoid methods being executed.
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        System.out.println(this.readResponse());
     }
 
     /**
+     * Reads a response from the server.
      *
-     * @return
+     * @return The server's response.
      */
-    protected String readResponse() {
+    protected String readResponse()
+    {
         // Initialize vars
         ByteArrayOutputStream dataStream;
         DataOutputStream dataWriter = new DataOutputStream(dataStream = new ByteArrayOutputStream());
         int readByte;
 
-        try {
+        try
+        {
             // Try reading everything
-            do {
+            do
+            {
                 readByte = this.socketReader.read();
 
-                if (-1 != readByte) {
+                if (-1 != readByte)
+                {
                     dataWriter.writeByte(readByte);
                 }
-            } while (this.socketReader.available() > 0 && -1 != readByte);
+            }
+            while(this.socketReader.available() > 0 && -1 != readByte);
 
             // Get the byte array
             byte[] byteArray = dataStream.toByteArray();
 
             return byteArray.length > 0 ? new String(byteArray).trim() : null;
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(
-                    Level.SEVERE,
-                    "Couldn't read response from server.",
-                    ex
+                Level.SEVERE,
+                "Couldn't read response from server.",
+                ex
             );
         }
 
@@ -121,28 +133,33 @@ public class SmtpClient {
     }
 
     /**
+     * Sends a request to the server.
      *
-     * @param request
-     * @throws java.io.IOException
+     * @param request The request
+     * @throws java.io.IOException If the request can't be sent.
      */
     protected void sendRequest(String request)
-            throws IOException {
+    throws IOException
+    {
         // Initialize vars
         ByteArrayOutputStream dataStream;
         DataOutputStream dataWriter = new DataOutputStream(dataStream = new ByteArrayOutputStream());
 
-        try {
+        try
+        {
             // Transform the response into a byte array
             dataWriter.writeBytes(request);
 
             // Then, send the response to the client
             this.socketWriter.write(dataStream.toByteArray());
             this.socketWriter.flush();
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(
-                    Level.SEVERE,
-                    "Couldn't send request to the server.",
-                    ex
+                Level.SEVERE,
+                "Couldn't send request to the server.",
+                ex
             );
 
             throw ex;
@@ -150,43 +167,50 @@ public class SmtpClient {
     }
 
     /**
+     * Validates a response from the server with the expected one.
      *
-     * @param futureState
-     * @param serverResponse
-     * @return
+     * @param futureState The next state if everything goes smoothly.
+     * @param serverResponse The response.
+     * @return A response code.
      */
-    protected int stateValidation(SmtpState futureState, String serverResponse) {
-        System.out.println(serverResponse);
-                
-        if (serverResponse.startsWith("250")) {
+    protected int stateValidation(SmtpState futureState, String serverResponse)
+    {
+        if(serverResponse.startsWith("250"))
+        {
             this.currentState = futureState;
+
             return 1;
         }
-
-        if (serverResponse.startsWith("354")) {
+        else if(serverResponse.startsWith("354"))
+        {
             this.currentState = futureState;
+
             return 2;
         }
-        
-        if (serverResponse.startsWith("221")) {
+        else if(serverResponse.startsWith("221"))
+        {
             this.currentState = futureState;
+
             return 3;
         }
-        
-        System.out.println("Server error");
+
         return 0;
     }
 
     /**
      * Sends an extended hello greetings.
      *
-     * @param domain
-     * @return
+     * @param domain The client's domain or IP address.
+     * @return A response code.
      */
-    public int ehlo(String domain) {
-        try {
+    public int ehlo(String domain)
+    {
+        try
+        {
             this.sendRequest("EHLO " + domain + SmtpProtocol.END_OF_LINE);
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -196,14 +220,18 @@ public class SmtpClient {
     /**
      * Starts a transaction.
      *
-     * @param mailAddress
-     * @return
+     * @param mailAddress The sender's mail address.
+     * @return A response code.
      * @todo Check greetings have already been sent.
      */
-    public int mailFrom(String mailAddress) {
-        try {
+    public int mailFrom(String mailAddress)
+    {
+        try
+        {
             this.sendRequest("MAIL FROM:<" + mailAddress + ">" + SmtpProtocol.END_OF_LINE);
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -213,14 +241,18 @@ public class SmtpClient {
     /**
      * Adds a recipient to the current transaction.
      *
-     * @param recipient
-     * @return
+     * @param recipient The recipient's mail address.
+     * @return A response code.
      * @todo Check there is a transaction.
      */
-    public int rcptTo(String recipient) {
-        try {
+    public int rcptTo(String recipient)
+    {
+        try
+        {
             this.sendRequest("RCPT TO:<" + recipient + ">" + SmtpProtocol.END_OF_LINE);
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -228,13 +260,18 @@ public class SmtpClient {
     }
 
     /**
+     * Notifies the server the next data which will be sent is going to be the mail's body.
      *
-     * @return
+     * @return A response code.
      */
-    public int data() {
-        try {
+    public int data()
+    {
+        try
+        {
             this.sendRequest("DATA" + SmtpProtocol.END_OF_LINE);
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -244,14 +281,22 @@ public class SmtpClient {
     /**
      * Sends the mail's body.
      *
-     * @param body
-     * @return
-     * @todo Check body ends with "CRLF.CRLF"
+     * @param body The mail's body.
+     * @return A response code.
      */
-    public int sendMailBody(String body) {
-        try {
+    public int sendMailBody(String body)
+    {
+        if(body.endsWith(SmtpProtocol.END_OF_DATA))
+        {
+            body += SmtpProtocol.END_OF_DATA;
+        }
+
+        try
+        {
             this.sendRequest(body);
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -261,12 +306,16 @@ public class SmtpClient {
     /**
      * Closes the connection.
      *
-     * @return
+     * @return A response code.
      */
-    public int quit() {
-        try {
+    public int quit()
+    {
+        try
+        {
             this.sendRequest("QUIT" + SmtpProtocol.END_OF_LINE);
-        } catch (IOException ex) {
+        }
+        catch(IOException ex)
+        {
             Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
 
