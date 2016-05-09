@@ -179,11 +179,10 @@ public class SmtpClient
      */
     protected int stateValidation(SmtpState futureState, String serverResponse)
     {
-        // @todo Beware of the 354 response, create a override method with expected response?
-        if(!serverResponse.startsWith("250"))
+        if(!serverResponse.startsWith("250") || !serverResponse.startsWith("354"))
         {
             return 0;
-        }
+        } 
 
         this.currentState = futureState;
 

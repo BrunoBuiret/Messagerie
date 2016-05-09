@@ -62,7 +62,7 @@ public class DataCommand extends AbstractSmtpCommand
             if(connection.getCurrentState().equals(SmtpState.EXPECTING_BODY))
             {
                 // Try reading the body
-                String data = connection.readUntil("\r\n.\r\n");
+                String data = connection.readUntil(SmtpProtocol.END_OF_DATA);
                 
                 if(null != data)
                 {

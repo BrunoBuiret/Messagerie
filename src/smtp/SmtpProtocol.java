@@ -23,6 +23,11 @@ public abstract class SmtpProtocol
     public static final String END_OF_LINE = "\r\n";
     
     /**
+     * The data sent must end with these characters.
+     */
+    public static final String END_OF_DATA = "\r\n.\r\n";
+    
+    /**
      * Extracts the command name from a request.
      * 
      * @param request The request to parse.
