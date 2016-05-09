@@ -1,6 +1,7 @@
 package smtp.server;
 
 import common.mails.MailBox;
+import common.mails.exceptions.UnknownMailBoxException;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -181,7 +182,7 @@ public class SmtpServer
             
             return mailBox;
         }
-        catch(Exception ex)
+        catch(UnknownMailBoxException | IOException ex)
         {
             Logger.getLogger(SmtpServer.class.getName()).log(
                 Level.SEVERE,

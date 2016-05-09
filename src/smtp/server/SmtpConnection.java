@@ -371,7 +371,7 @@ public class SmtpConnection extends Thread
                 // Build a string with the current data
                 currentData = new String(dataStream.toByteArray(), charset);
             }
-            while(currentData.endsWith(pattern));
+            while(!currentData.endsWith(pattern));
 
             // Log if necessary
             if(this.server.isDebug())
