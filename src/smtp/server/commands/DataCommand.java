@@ -74,6 +74,15 @@ public class DataCommand extends AbstractSmtpCommand
                     MailBox mailBox;
                     Mail mail = Mail.parse(data);
                     
+                    // build the header from the previous commands
+                    String sender = connection.getSenderBuffer();
+                    mail.addHeader("from", sender);
+                    String recipients = "";
+                    for(String recipient : recipientsBuffer) {
+                        recipients += recipient + ", ";
+                    }
+                    mail.addHeader("to", recipients.substring(0, recipients.length() - 2));
+                    
                     // Add the mail to every recipient
                     for(String recipient : recipientsBuffer)
                     {
