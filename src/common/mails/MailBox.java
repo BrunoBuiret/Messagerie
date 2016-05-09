@@ -144,7 +144,6 @@ public class MailBox
                 }
 
                 // Write body, first split it every 76 characters
-                /*
                 List<String> bodyFragments = new ArrayList<>();
                 int currentIndex = 0, bodyLength = mail.getBody().length();
 
@@ -180,8 +179,6 @@ public class MailBox
 
                 // End the body
                 dataWriter.writeBytes("\r\n.\r\n");
-                */
-                dataWriter.writeBytes(mail.getBody());
             }
 
             // Write the emails into the file
@@ -303,14 +300,19 @@ public class MailBox
             {
                 mailBoxStream.mark(10);
                 
-                if(-1 == mailBoxStream.read())
+                try
+                {
+                    if(-1 == mailBoxStream.read())
+                    {
+                        fileEmpty = true;
+                    }
+                }
+                catch(IOException ex)
                 {
                     fileEmpty = true;
                 }
-                else
-                {
-                    mailBoxStream.reset();
-                }
+                
+                mailBoxStream.reset();
             }
 
             // Read only if the file isn't empty
