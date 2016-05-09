@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import smtp.SmtpProtocol;
 
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
@@ -15,7 +16,7 @@ import java.util.regex.Pattern;
 public class Mail
 {
     /**
-     *
+     * The mail pattern to parse a string.
      */
     protected static final Pattern PATTERN_MAIL = Pattern.compile(
         "^((?:(?:[^:\\n\\r]+):(?:[^:]+)\\r\\n)+)\\r\\n(.+)\\r\\n\\.\\r\\n",
@@ -23,17 +24,17 @@ public class Mail
     );
 
     /**
-     *
+     * The mail's headers list.
      */
     protected Map<String, String> headers;
 
     /**
-     *
+     * The mail's body.
      */
     protected String body;
 
     /**
-     *
+     * Creates a new mail.
      */
     public Mail()
     {
@@ -42,9 +43,10 @@ public class Mail
     }
 
     /**
-     *
-     * @param data
-     * @return
+     * Parses a string to build a mail.
+     * 
+     * @param data The data to parse.
+     * @return The newly built mail.
      * @todo Find a way to get rid of the unwanted line breaks in the body.
      */
     public static Mail parse(String data)
@@ -70,16 +72,17 @@ public class Mail
         else
         {
             // There is only the body
-            mail.setBody(data);
+            mail.setBody(data.substring(0, data.lastIndexOf(SmtpProtocol.END_OF_DATA)));
         }
         
         return mail;
     }
 
     /**
-     *
-     * @param name
-     * @return
+     * Gets a header's value from the mail.
+     * 
+     * @param name The header's name.
+     * @return The header's value if it exists, <code>null</code> otherwise.
      */
     public String getHeader(String name)
     {
@@ -87,8 +90,9 @@ public class Mail
     }
 
     /**
-     *
-     * @return
+     * Gets every headers from the mail.
+     * 
+     * @return The headers.
      */
     public Map<String, String> getHeaders()
     {
@@ -96,8 +100,10 @@ public class Mail
     }
 
     /**
-     *
-     * @param header
+     * Adds an header to the mail.
+     * 
+     * @param header A string containing both the header's name and the header's
+     * value.
      */
     public void addHeader(String header)
     {
@@ -117,9 +123,10 @@ public class Mail
     }
 
     /**
+     * Adds an header to the mail.
      *
-     * @param name
-     * @param value
+     * @param name The header's name.
+     * @param value The header's value.
      */
     public void addHeader(String name, String value)
     {
@@ -127,8 +134,9 @@ public class Mail
     }
 
     /**
-     *
-     * @return
+     * Gets the mail's body.
+     * 
+     * @return The mail's body.
      */
     public String getBody()
     {
@@ -136,8 +144,9 @@ public class Mail
     }
 
     /**
-     *
-     * @param body
+     * Sets the mail's body.
+     * 
+     * @param body The mail's body.
      */
     public void setBody(String body)
     {
@@ -145,8 +154,9 @@ public class Mail
     }
 
     /**
-     *
-     * @return
+     * Gets the mail' size using UTF-8 by default.
+     * 
+     * @return The mail' size.
      */
     public int getSize()
     {
@@ -154,33 +164,29 @@ public class Mail
     }
 
     /**
-     *
-     * @param charset
-     * @return
-     * @todo
+     * Gets the mail' size.
+     * 
+     * @param charset The charset to use.
+     * @return The mail' size.
      */
     public int getSize(Charset charset)
     {
-        return 0;
-    }
+        int size = 0;
+        
+        // Compute headers' length
+        for(Map.Entry<String, String> entry : this.headers.entrySet())
+        {
+            size += entry.getKey().getBytes(charset).length;
+            size += 2; // ": "
+            size += entry.getValue().getBytes(charset).length;
+            size += 2; // "<CRLF>"
+        }
 
-    /**
-     *
-     * @return
-     */
-    public byte[] getBytes()
-    {
-        return this.getBytes(StandardCharsets.UTF_8);
-    }
+        size += 2; // "<CRLF>"
 
-    /**
-     *
-     * @param charset
-     * @return
-     * @todo
-     */
-    public byte[] getBytes(Charset charset)
-    {
-        return new byte[]{};
+        // Add the body's length
+        size += this.body.getBytes(charset).length;
+        
+        return size;
     }
 }
