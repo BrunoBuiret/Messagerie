@@ -295,7 +295,7 @@ public class SmtpClient
      */
     public int sendMailBody(String body)
     {
-        if(body.endsWith(SmtpProtocol.END_OF_DATA))
+        if(!body.endsWith(SmtpProtocol.END_OF_DATA))
         {
             body += SmtpProtocol.END_OF_DATA;
         }
