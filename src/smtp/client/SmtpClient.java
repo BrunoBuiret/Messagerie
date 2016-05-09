@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import smtp.SmtpProtocol;
+import smtp.exceptions.SmtpClientInitializationException;
 
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
@@ -56,10 +57,13 @@ public class SmtpClient
     /**
      * Creates a new SMTP client.
      *
-     * @param host
-     * @param port
+     * @param host The server's host.
+     * @param port The server's port.
+     * @throws smtp.exceptions.SmtpClientInitializationException If the client can't
+     * be properly initialized.
      */
     public SmtpClient(InetAddress host, int port)
+    throws SmtpClientInitializationException
     {
         try
         {
@@ -84,8 +88,13 @@ public class SmtpClient
         }
         catch(IOException ex)
         {
-            // @todo Throw exception to avoid methods being executed.
-            Logger.getLogger(SmtpClient.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SmtpClient.class.getName()).log(
+                Level.SEVERE,
+                "Couldn't initialize SMTP client.",
+                ex
+            );
+            
+            throw new SmtpClientInitializationException(ex);
         }
     }
 
