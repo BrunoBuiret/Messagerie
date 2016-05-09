@@ -3,10 +3,11 @@ package views;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -15,6 +16,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javafx.util.Pair;
 import javax.swing.JOptionPane;
+import smtp.SmtpProtocol;
+import smtp.client.SmtpClient;
+import smtp.exceptions.SmtpClientInitializationException;
 
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
@@ -90,7 +94,8 @@ public class SmtpClientView extends javax.swing.JFrame
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+    private void initComponents()
+    {
         java.awt.GridBagConstraints gridBagConstraints;
 
         senderLabel = new javax.swing.JLabel();
@@ -121,6 +126,8 @@ public class SmtpClientView extends javax.swing.JFrame
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 0);
         getContentPane().add(senderLabel, gridBagConstraints);
+
+        senderField.setText("alexis.rabilloud@univ-lyon1.fr");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 0;
@@ -136,6 +143,8 @@ public class SmtpClientView extends javax.swing.JFrame
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 0);
         getContentPane().add(recipientsLabel, gridBagConstraints);
+
+        recipientsField.setText("bruno.buiret@localhost.fr");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 2;
@@ -174,8 +183,10 @@ public class SmtpClientView extends javax.swing.JFrame
         buttonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 0));
 
         resetButton.setText("Tout effacer");
-        resetButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
+        resetButton.addActionListener(new java.awt.event.ActionListener()
+        {
+            public void actionPerformed(java.awt.event.ActionEvent evt)
+            {
                 resetButtonActionPerformed(evt);
             }
         });
@@ -183,8 +194,10 @@ public class SmtpClientView extends javax.swing.JFrame
 
         sendButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/mail-forward.png"))); // NOI18N
         sendButton.setText("Envoyer");
-        sendButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
+        sendButton.addActionListener(new java.awt.event.ActionListener()
+        {
+            public void actionPerformed(java.awt.event.ActionEvent evt)
+            {
                 sendButtonActionPerformed(evt);
             }
         });
@@ -201,6 +214,10 @@ public class SmtpClientView extends javax.swing.JFrame
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    /**
+     * 
+     * @param evt 
+     */
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
         this.executor.execute(() ->
         {
@@ -304,11 +321,158 @@ public class SmtpClientView extends javax.swing.JFrame
             // There are no errors as of yet, try sending the mail
             if(errorsList.isEmpty())
             {
-                Map<String, List<String>> domains = new HashMap<>();
+                // Build a map connecting each recipient to their SMTP server's domain
+                Map<String, Set<String>> domains = new HashMap<>();
+                String domain;
                 
                 for(String recipient : recipientsList)
                 {
+                    if(null != recipient)
+                    {
+                        // Extract the domain from the mail address
+                        domain = recipient.substring(recipient.indexOf("@") + 1);
+
+                        // Initialize the domain's list if it hasn't been already
+                        if(!domains.containsKey(domain))
+                        {
+                            domains.put(domain, new HashSet<>());
+                        }
+
+                        domains.get(domain).add(recipient);
+                    }
+                }
+                
+                // Build body
+                StringBuilder bodyBuilder = new StringBuilder();
+                
+                if(null != subjectValue && !subjectValue.isEmpty())
+                {
+                    bodyBuilder.append("Subject: ");
+                    bodyBuilder.append(subjectValue);
+                    bodyBuilder.append(SmtpProtocol.END_OF_LINE);
+                    bodyBuilder.append(SmtpProtocol.END_OF_LINE);
+                }
+
+                if(null != bodyValue)
+                {
+                    bodyBuilder.append(bodyValue);
+                }
+
+                bodyBuilder.append(SmtpProtocol.END_OF_DATA);
+                bodyValue = bodyBuilder.toString();
+                
+                // Connect to each needed SMTP server
+                SmtpClient client;
+                Pair<InetAddress, Integer> serverData;
+                String senderDomain = senderValue.substring(senderValue.indexOf("@") + 1);
+                List<String> serverErrors;
+
+                for(Map.Entry<String, Set<String>> entry : domains.entrySet())
+                {
+                    // Fetch the server's connection data and establish connection
+                    serverData = this.dns.get(entry.getKey());
                     
+                    try
+                    {
+                        client = new SmtpClient(serverData.getKey(), serverData.getValue());
+                        serverErrors = new ArrayList<>();
+
+                        // First, send greetings
+                        if(1 == client.ehlo(senderDomain))
+                        {
+                            // Then, initiate transaction
+                            if(1 == client.mailFrom(senderValue))
+                            {
+                                // Add every recipient
+                                for(String recipient : entry.getValue())
+                                {
+                                    if(1 != client.rcptTo(recipient))
+                                    {
+                                        serverErrors.add(String.format(
+                                            "Impossible d'ajouter \"%s\" à la liste des destinataires.",
+                                            recipient
+                                        ));
+                                    }
+                                }
+
+                                // Continue transaction only if there have been no errors up to now
+                                if(serverErrors.isEmpty())
+                                {
+                                    System.out.println("Pas d'erreur serveur");
+                                    
+                                    if(2 == client.data())
+                                    {
+                                        System.out.println("Envoi du corps");
+                                        
+                                        if(1 != client.sendMailBody(bodyValue))
+                                        {
+                                            errorsList.add(String.format(
+                                                "Impossible de terminer la transaction avec le serveur SMTP \"%s\".",
+                                                entry.getKey()
+                                            ));
+                                        }
+                                        
+                                        System.out.println("Corps envoyé");
+                                    }
+                                    else
+                                    {
+                                        errorsList.add(String.format(
+                                            "Impossible d'initier la lecture du corps de l'email avec le serveur SMTP \"%s\".",
+                                            entry.getKey()
+                                        ));
+                                    }
+                                }
+                                else
+                                {
+                                    errorsList.addAll(serverErrors);
+                                }
+                            }
+                            else
+                            {
+                                errorsList.add(String.format(
+                                    "Impossible d'initier une transaction avec le serveur SMTP \"%s\".",
+                                    entry.getKey()
+                                ));
+                            }
+                        }
+                        else
+                        {
+                            errorsList.add(String.format(
+                                "Impossible de saluer le serveur SMTP \"%s\".",
+                                entry.getKey()
+                            ));
+                        }
+
+                        if(3 != client.quit())
+                        {
+                            errorsList.add(String.format(
+                                "Impossible de clore la connexion au serveur SMTP \"%s\".",
+                                entry.getKey()
+                            ));
+                        }
+                    }
+                    catch(SmtpClientInitializationException ex)
+                    {
+                        errorsList.add(String.format(
+                            "Impossible d'établir la connexion au serveur SMTP \"%s\".",
+                            entry.getKey()
+                        ));
+                    }
+                }
+                
+                if(errorsList.isEmpty())
+                {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Votre email a bien été envoyé.",
+                        "Envoi réussi",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                    this.clearFields();
+                }
+                else
+                {
+                    this.showErrorDialog(errorsList);
                 }
             }
             else
@@ -320,6 +484,10 @@ public class SmtpClientView extends javax.swing.JFrame
         });
     }//GEN-LAST:event_sendButtonActionPerformed
 
+    /**
+     * 
+     * @param evt 
+     */
     private void resetButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetButtonActionPerformed
         this.executor.execute(() ->
         {
@@ -352,6 +520,10 @@ public class SmtpClientView extends javax.swing.JFrame
         this.sendButton.setEnabled(enabled);
     }
 
+    /**
+     * 
+     * @param errorsList 
+     */
     private void showErrorDialog(List<String> errorsList)
     {
         StringBuilder errorsListBuilder = new StringBuilder();
