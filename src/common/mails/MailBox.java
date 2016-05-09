@@ -128,19 +128,23 @@ public class MailBox
             {
                 // Write headers
                 headers = mail.getHeaders();
-
-                for(Map.Entry<String, String> entry : headers.entrySet())
+                
+                if(!headers.isEmpty())
                 {
-                    dataWriter.writeBytes(entry.getKey());
-                    dataWriter.writeBytes(": ");
-                    dataWriter.writeBytes(entry.getValue());
+                    for(Map.Entry<String, String> entry : headers.entrySet())
+                    {
+                        dataWriter.writeBytes(entry.getKey());
+                        dataWriter.writeBytes(": ");
+                        dataWriter.writeBytes(entry.getValue());
+                        dataWriter.writeBytes("\r\n");
+                    }
+
+                    // Write separator
                     dataWriter.writeBytes("\r\n");
                 }
 
-                // Write separator
-                dataWriter.writeBytes("\r\n");
-
                 // Write body, first split it every 76 characters
+                /*
                 List<String> bodyFragments = new ArrayList<>();
                 int currentIndex = 0, bodyLength = mail.getBody().length();
 
@@ -176,6 +180,8 @@ public class MailBox
 
                 // End the body
                 dataWriter.writeBytes("\r\n.\r\n");
+                */
+                dataWriter.writeBytes(mail.getBody());
             }
 
             // Write the emails into the file
@@ -285,88 +291,108 @@ public class MailBox
         final int ASCII_LF = (int) '\n';
         final int ASCII_CR = (int) '\r';
         final int ASCII_DOT = (int) '.';
+        boolean fileEmpty = false;
 
         try
         {
             // Try opening the mailbox
             mailBoxStream = new BufferedInputStream(new FileInputStream(this.path));
-
-            while(mailBoxStream.available() > 0)
+            
+            // Is the file empty?
+            if(mailBoxStream.markSupported())
             {
-                // Create a new mail
-                mail = new Mail();
-                endOfHeaders = endOfMail = false;
-
-                // Read the headers
-                do
+                mailBoxStream.mark(10);
+                
+                if(-1 == mailBoxStream.read())
                 {
-                    // Read the next character
-                    previousCharacter = currentCharacter;
-                    currentCharacter = mailBoxStream.read();
-
-                    // Have we reached the end of a line?
-                    if(currentCharacter == ASCII_LF && previousCharacter == ASCII_CR)
-                    {
-                        // Write the header
-                        mail.addHeader(new String(dataStream.toByteArray(), charset).trim());
-
-                        // And clear the output stream to start a new header
-                        dataStream.reset();
-                    }
-                    // Ignore this character, we are going to reach the end of a line
-                    else if(currentCharacter == ASCII_CR && previousCharacter != ASCII_LF)
-                    {
-                    }
-                    // Have we reached the headers limit?
-                    else if(currentCharacter == ASCII_CR && previousCharacter == ASCII_LF)
-                    {
-                        // Get rid of the next character, it must be an LF
-                        mailBoxStream.read();
-
-                        // Stop this loop
-                        endOfHeaders = true;
-                    }
-                    // Otherwise, simply add the current character to the output stream
-                    else
-                    {
-                        dataWriter.writeByte(currentCharacter);
-                    }
+                    fileEmpty = true;
                 }
-                while(!endOfHeaders);
-
-                // Read the contents
-                do
+                else
                 {
-                    // Read the next character
-                    previousCharacter = currentCharacter;
-                    currentCharacter = mailBoxStream.read();
-
-                    // Have we reached the end of the mail?
-                    if(currentCharacter == ASCII_DOT && previousCharacter == ASCII_LF)
-                    {
-                        // Write the contents
-                        mail.setBody(new String(dataStream.toByteArray(), charset).trim());
-
-                        // Get rid of the next two characters
-                        mailBoxStream.read();
-                        mailBoxStream.read();
-
-                        // And clear the output stream to start a new mail
-                        dataStream.reset();
-
-                        // Then, stop this loop
-                        endOfMail = true;
-                    }
-                    // Otherwise, simply add the current character to the output stream
-                    else
-                    {
-                        dataWriter.writeByte(currentCharacter);
-                    }
+                    mailBoxStream.reset();
                 }
-                while(!endOfMail);
+            }
 
-                // Save the email
-                this.mailsList.add(mail);
+            // Read only if the file isn't empty
+            if(!fileEmpty)
+            {
+                while(mailBoxStream.available() > 0)
+                {
+                    // Create a new mail
+                    mail = new Mail();
+                    endOfHeaders = endOfMail = false;
+
+                    // Read the headers
+                    do
+                    {
+                        // Read the next character
+                        previousCharacter = currentCharacter;
+                        currentCharacter = mailBoxStream.read();
+
+                        // Have we reached the end of a line?
+                        if(currentCharacter == ASCII_LF && previousCharacter == ASCII_CR)
+                        {
+                            // Write the header
+                            mail.addHeader(new String(dataStream.toByteArray(), charset).trim());
+
+                            // And clear the output stream to start a new header
+                            dataStream.reset();
+                        }
+                        // Ignore this character, we are going to reach the end of a line
+                        else if(currentCharacter == ASCII_CR && previousCharacter != ASCII_LF)
+                        {
+                        }
+                        // Have we reached the headers limit?
+                        else if(currentCharacter == ASCII_CR && previousCharacter == ASCII_LF)
+                        {
+                            // Get rid of the next character, it must be an LF
+                            mailBoxStream.read();
+
+                            // Stop this loop
+                            endOfHeaders = true;
+                        }
+                        // Otherwise, simply add the current character to the output stream
+                        else
+                        {
+                            dataWriter.writeByte(currentCharacter);
+                        }
+                    }
+                    while(!endOfHeaders);
+
+                    // Read the contents
+                    do
+                    {
+                        // Read the next character
+                        previousCharacter = currentCharacter;
+                        currentCharacter = mailBoxStream.read();
+
+                        // Have we reached the end of the mail?
+                        if(currentCharacter == ASCII_DOT && previousCharacter == ASCII_LF)
+                        {
+                            // Write the contents
+                            mail.setBody(new String(dataStream.toByteArray(), charset).trim());
+
+                            // Get rid of the next two characters
+                            mailBoxStream.read();
+                            mailBoxStream.read();
+
+                            // And clear the output stream to start a new mail
+                            dataStream.reset();
+
+                            // Then, stop this loop
+                            endOfMail = true;
+                        }
+                        // Otherwise, simply add the current character to the output stream
+                        else
+                        {
+                            dataWriter.writeByte(currentCharacter);
+                        }
+                    }
+                    while(!endOfMail);
+
+                    // Save the email
+                    this.mailsList.add(mail);
+                }
             }
         }
         catch(FileNotFoundException ex)
