@@ -75,7 +75,6 @@ public class RecipientCommand extends AbstractSmtpCommand
                         }
                         else
                         {
-                            System.out.println("Doesn't exist");
                             // This user doesn't exist
                             responseBuilder.append("551 User not local");
                             responseBuilder.append(SmtpProtocol.END_OF_LINE);
@@ -83,7 +82,6 @@ public class RecipientCommand extends AbstractSmtpCommand
                     }
                     else
                     {
-                        System.out.println("Already exists");
                         // This recipient has already been added
                         responseBuilder.append("501 Syntax error in parameters or arguments");
                         responseBuilder.append(SmtpProtocol.END_OF_LINE);
@@ -91,16 +89,13 @@ public class RecipientCommand extends AbstractSmtpCommand
                 }
                 else
                 {
-                    System.out.println("Not good domain");
                     // This user doesn't exist here
                     responseBuilder.append("551 User not local");
                     responseBuilder.append(SmtpProtocol.END_OF_LINE);
-                    
                 }
             }
             else
             {
-                System.out.println("No matches");
                 // Inform the user the email is invalid
                 responseBuilder.append("501 Syntax error in parameters or arguments");
                 responseBuilder.append(SmtpProtocol.END_OF_LINE);
@@ -108,7 +103,6 @@ public class RecipientCommand extends AbstractSmtpCommand
         }
         else
         {
-            System.out.println("Not starts with");
             // Inform the user the syntax is incorrect
             responseBuilder.append("501 Syntax error in parameters or arguments");
             responseBuilder.append(SmtpProtocol.END_OF_LINE);
