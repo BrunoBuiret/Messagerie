@@ -20,7 +20,7 @@ public abstract class MainServer
         try
         {
             SmtpServer server = new SmtpServer(
-                "univ-lyon1.fr",
+                "localhost.fr",
                 9999,
                 true,
                 new File("D:\\")
