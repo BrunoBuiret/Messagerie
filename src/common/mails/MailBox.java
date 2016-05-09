@@ -35,12 +35,12 @@ public class MailBox
     protected File path;
 
     /**
-     *
+     * The list of mails in this mailbox.
      */
     protected List<Mail> mailsList;
 
     /**
-     *
+     * The list of mails marked for deletion.
      */
     protected List<Mail> mailsToDeleteList;
 
@@ -469,6 +469,7 @@ public class MailBox
      * exist.
      */
     public Mail get(int index)
+    throws MarkedForDeletionException, NonExistentMailException
     {
         if(index < this.mailsList.size())
         {
@@ -509,8 +510,13 @@ public class MailBox
      * Marks a mail for deletion if it hasn't been already.
      *
      * @param index The mail's index.
+     * @throws common.mails.exceptions.NonExistentMailException If there are no
+     * mail associated to that index.
+     * @throws common.mails.exceptions.AlreadyMarkedForDeletionException If the
+     * mail is already marked for deletion.
      */
     public void delete(int index)
+    throws NonExistentMailException, AlreadyMarkedForDeletionException
     {
         if(index < this.mailsList.size())
         {
@@ -529,8 +535,11 @@ public class MailBox
      * Marks a mail for deletion if it hasn't been already.
      *
      * @param mail The mail to mark.
+     * @throws common.mail.exceptions.AlreadyMarkedForDeletionException If the
+     * mail is already marked for deletion.
      */
     public void delete(Mail mail)
+    throws AlreadyMarkedForDeletionException
     {
         if(!this.mailsToDeleteList.contains(mail))
         {

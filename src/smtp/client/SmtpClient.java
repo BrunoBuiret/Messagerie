@@ -35,22 +35,22 @@ public class SmtpClient
     };
 
     /**
-     *
+     * The socket.
      */
     protected SSLSocket socket;
 
     /**
-     *
+     * The socket's output stream.
      */
     protected BufferedOutputStream socketWriter;
 
     /**
-     *
+     * The socket's input stream.
      */
     protected BufferedInputStream socketReader;
 
     /**
-     *
+     * The current state of the client.
      */
     protected SmtpState currentState = SmtpState.Initialisation;
 

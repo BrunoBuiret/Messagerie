@@ -16,7 +16,7 @@ import smtp.SmtpProtocol;
 public class Mail
 {
     /**
-     * The mail pattern to parse a string.
+     * The pattern to parse a string.
      */
     protected static final Pattern PATTERN_MAIL = Pattern.compile(
         "^((?:(?:[^:\\n\\r]+):(?:[^:]+)\\r\\n)+)\\r\\n(.+)\\r\\n\\.\\r\\n",
@@ -52,7 +52,6 @@ public class Mail
     public static Mail parse(String data)
     {
         // Initialize vars
-        StringBuilder bodyBuilder = new StringBuilder();
         Mail mail = new Mail();
         Matcher matcher = Mail.PATTERN_MAIL.matcher(data);
         

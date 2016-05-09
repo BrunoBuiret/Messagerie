@@ -95,7 +95,8 @@ public class SmtpConnection extends Thread
             availableCipherSuites
                 .stream()
                 .filter((cipherSuite) -> (cipherSuite.contains("anon")))
-                .forEach((cipherSuite) -> {
+                .forEach((cipherSuite) ->
+                {
                     usableCipherSuites.add(cipherSuite);
                 })
             ;
