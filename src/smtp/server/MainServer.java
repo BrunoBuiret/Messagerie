@@ -21,7 +21,7 @@ public abstract class MainServer
         {
             SmtpServer server = new SmtpServer(
                 "localhost.fr",
-                9999,
+                10000,
                 true,
                 new File("D:\\")
             );

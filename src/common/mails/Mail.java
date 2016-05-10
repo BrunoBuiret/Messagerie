@@ -2,6 +2,7 @@ package common.mails;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -19,8 +20,8 @@ public class Mail
      * The pattern to parse a string.
      */
     protected static final Pattern PATTERN_MAIL = Pattern.compile(
-        "^((?:(?:[^:\\n\\r]+):(?:[^:]+)\\r\\n)+)\\r\\n(.+)\\r\\n\\.\\r\\n",
-        Pattern.MULTILINE
+        "^((?:(?:[^:\\r\\n]+):(?:[^\\r\\n]+)\\r\\n)+)\\r\\n(.+)\\r\\n\\.\\r\\n",
+        Pattern.DOTALL
     );
 
     /**
@@ -59,6 +60,8 @@ public class Mail
         {
             // There are headers and a body
             String[] headersLines = matcher.group(1).split("\r\n");
+            
+            System.out.print(Arrays.toString(headersLines));
             
             for(String headerLine : headersLines)
             {

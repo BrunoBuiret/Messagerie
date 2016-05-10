@@ -298,7 +298,7 @@ public class MailBox
             // Is the file empty?
             if(mailBoxStream.markSupported())
             {
-                mailBoxStream.mark(10);
+                mailBoxStream.mark(1);
                 
                 try
                 {
@@ -371,18 +371,26 @@ public class MailBox
                         // Have we reached the end of the mail?
                         if(currentCharacter == ASCII_DOT && previousCharacter == ASCII_LF)
                         {
-                            // Write the contents
-                            mail.setBody(new String(dataStream.toByteArray(), charset).trim());
+                            if(mailBoxStream.markSupported())
+                            {
+                                mailBoxStream.mark(2);
+                                
+                                if(ASCII_CR == mailBoxStream.read() && ASCII_LF == mailBoxStream.read())
+                                {
+                                    // Write the contents
+                                    mail.setBody(new String(dataStream.toByteArray(), charset).trim());
 
-                            // Get rid of the next two characters
-                            mailBoxStream.read();
-                            mailBoxStream.read();
+                                    // Get rid of the next two characters
+                                    mailBoxStream.read();
+                                    mailBoxStream.read();
 
-                            // And clear the output stream to start a new mail
-                            dataStream.reset();
+                                    // And clear the output stream to start a new mail
+                                    dataStream.reset();
 
-                            // Then, stop this loop
-                            endOfMail = true;
+                                    // Then, stop this loop
+                                    endOfMail = true;
+                                }
+                            }
                         }
                         // Otherwise, simply add the current character to the output stream
                         else
