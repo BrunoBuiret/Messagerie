@@ -74,7 +74,7 @@ public class SmtpClientView extends javax.swing.JFrame
         // Initialize fake DNS service
         try
         {
-            this.dns.put("localhost.fr", new Pair<>(InetAddress.getByName("127.0.0.1"), 9999));
+            this.dns.put("localhost.fr", new Pair<>(InetAddress.getByName("127.0.0.1"), 10000));
             this.dns.put("univ-lyon1.fr", new Pair<>(InetAddress.getByName("134.214.118.237"), 9999));
         }
         catch(UnknownHostException ex)
@@ -398,11 +398,8 @@ public class SmtpClientView extends javax.swing.JFrame
                                 // Continue transaction only if there have been no errors up to now
                                 if(serverErrors.isEmpty())
                                 {
-                                    System.out.println("Pas d'erreur serveur");
-                                    
                                     if(2 == client.data())
                                     {
-                                        System.out.println("Envoi du corps");
                                         
                                         if(1 != client.sendMailBody(bodyValue))
                                         {
@@ -411,8 +408,6 @@ public class SmtpClientView extends javax.swing.JFrame
                                                 entry.getKey()
                                             ));
                                         }
-                                        
-                                        System.out.println("Corps envoyé");
                                     }
                                     else
                                     {
