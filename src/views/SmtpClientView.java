@@ -215,8 +215,8 @@ public class SmtpClientView extends javax.swing.JFrame
     }// </editor-fold>//GEN-END:initComponents
 
     /**
-     * 
-     * @param evt 
+     *
+     * @param evt
      */
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
         this.executor.execute(() ->
@@ -318,13 +318,21 @@ public class SmtpClientView extends javax.swing.JFrame
                 bodyValue = bodyValue.trim();
             }
 
+            if((null == subjectValue || subjectValue.isEmpty()) && (null == bodyValue || bodyValue.isEmpty()))
+            {
+                errorsList.add("Aucun contenu à envoyer.");
+            }
+
             // There are no errors as of yet, try sending the mail
             if(errorsList.isEmpty())
             {
+                // Initialize some more vars
+                List<String> successList = new ArrayList<>();
+                
                 // Build a map connecting each recipient to their SMTP server's domain
                 Map<String, Set<String>> domains = new HashMap<>();
                 String domain;
-                
+
                 for(String recipient : recipientsList)
                 {
                     if(null != recipient)
@@ -341,10 +349,10 @@ public class SmtpClientView extends javax.swing.JFrame
                         domains.get(domain).add(recipient);
                     }
                 }
-                
+
                 // Build body
                 StringBuilder bodyBuilder = new StringBuilder();
-                
+
                 if(null != subjectValue && !subjectValue.isEmpty())
                 {
                     bodyBuilder.append("Subject: ");
@@ -360,7 +368,7 @@ public class SmtpClientView extends javax.swing.JFrame
 
                 bodyBuilder.append(SmtpProtocol.END_OF_DATA);
                 bodyValue = bodyBuilder.toString();
-                
+
                 // Connect to each needed SMTP server
                 SmtpClient client;
                 Pair<InetAddress, Integer> serverData;
@@ -371,11 +379,10 @@ public class SmtpClientView extends javax.swing.JFrame
                 {
                     // Fetch the server's connection data and establish connection
                     serverData = this.dns.get(entry.getKey());
-                    
+
                     try
                     {
                         client = new SmtpClient(serverData.getKey(), serverData.getValue());
-                        serverErrors = new ArrayList<>();
 
                         // First, send greetings
                         if(1 == client.ehlo(senderDomain))
@@ -386,40 +393,37 @@ public class SmtpClientView extends javax.swing.JFrame
                                 // Add every recipient
                                 for(String recipient : entry.getValue())
                                 {
-                                    if(1 != client.rcptTo(recipient))
+                                    if(1 == client.rcptTo(recipient))
                                     {
-                                        serverErrors.add(String.format(
+                                        successList.add(recipient);
+                                    }
+                                    else
+                                    {
+                                        errorsList.add(String.format(
                                             "Impossible d'ajouter \"%s\" à la liste des destinataires.",
                                             recipient
                                         ));
                                     }
                                 }
 
-                                // Continue transaction only if there have been no errors up to now
-                                if(serverErrors.isEmpty())
+                                // Try sending the body
+                                if(2 == client.data())
                                 {
-                                    if(2 == client.data())
+                                    if(1 != client.sendMailBody(bodyValue))
                                     {
-                                        
-                                        if(1 != client.sendMailBody(bodyValue))
-                                        {
-                                            errorsList.add(String.format(
-                                                "Impossible de terminer la transaction avec le serveur SMTP \"%s\".",
-                                                entry.getKey()
-                                            ));
-                                        }
-                                    }
-                                    else
-                                    {
+                                        successList.removeAll(entry.getValue());
                                         errorsList.add(String.format(
-                                            "Impossible d'initier la lecture du corps de l'email avec le serveur SMTP \"%s\".",
+                                            "Impossible de terminer la transaction avec le serveur SMTP \"%s\".",
                                             entry.getKey()
                                         ));
                                     }
                                 }
                                 else
                                 {
-                                    errorsList.addAll(serverErrors);
+                                    errorsList.add(String.format(
+                                        "Impossible d'initier la lecture du corps de l'email avec le serveur SMTP \"%s\".",
+                                        entry.getKey()
+                                    ));
                                 }
                             }
                             else
@@ -454,7 +458,7 @@ public class SmtpClientView extends javax.swing.JFrame
                         ));
                     }
                 }
-                
+
                 if(errorsList.isEmpty())
                 {
                     JOptionPane.showMessageDialog(
@@ -464,6 +468,36 @@ public class SmtpClientView extends javax.swing.JFrame
                         JOptionPane.INFORMATION_MESSAGE
                     );
                     this.clearFields();
+                }
+                else if(!errorsList.isEmpty() && !successList.isEmpty())
+                {
+                    // Build message
+                    StringBuilder messageBuilder = new StringBuilder();
+                    messageBuilder.append("Votre email a bien été envoyé à :\n");
+                    
+                    for(String recipient : successList)
+                    {
+                        messageBuilder.append("- ");
+                        messageBuilder.append(recipient);
+                        messageBuilder.append("\n");
+                    }
+                    
+                    messageBuilder.append("Mais :\n");
+                    
+                    for(String error : errorsList)
+                    {
+                        messageBuilder.append("- ");
+                        messageBuilder.append(error);
+                        messageBuilder.append("\n");
+                    }
+                    
+                    // Then, display warning dialog
+                    JOptionPane.showMessageDialog(
+                        this,
+                        messageBuilder.toString(),
+                        "Envoi partiellement réussi",
+                        JOptionPane.WARNING_MESSAGE
+                    );
                 }
                 else
                 {
@@ -480,8 +514,8 @@ public class SmtpClientView extends javax.swing.JFrame
     }//GEN-LAST:event_sendButtonActionPerformed
 
     /**
-     * 
-     * @param evt 
+     *
+     * @param evt
      */
     private void resetButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetButtonActionPerformed
         this.executor.execute(() ->
@@ -516,8 +550,8 @@ public class SmtpClientView extends javax.swing.JFrame
     }
 
     /**
-     * 
-     * @param errorsList 
+     *
+     * @param errorsList
      */
     private void showErrorDialog(List<String> errorsList)
     {

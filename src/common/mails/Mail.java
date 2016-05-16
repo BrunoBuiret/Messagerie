@@ -2,7 +2,6 @@ package common.mails;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -31,6 +30,10 @@ public class Mail
 
     /**
      * The mail's body.
+     * 
+     * To avoid any problem with the mailbox file, the mail's body must always
+     * be formatted according to RFC 5322: no more than 78 characters on a line
+     * including CRLF.
      */
     protected String body;
 
@@ -45,7 +48,7 @@ public class Mail
 
     /**
      * Parses a string to build a mail.
-     * 
+     *
      * @param data The data to parse.
      * @return The newly built mail.
      * @todo Find a way to get rid of the unwanted line breaks in the body.
@@ -55,19 +58,17 @@ public class Mail
         // Initialize vars
         Mail mail = new Mail();
         Matcher matcher = Mail.PATTERN_MAIL.matcher(data);
-        
+
         if(matcher.matches())
         {
             // There are headers and a body
             String[] headersLines = matcher.group(1).split("\r\n");
-            
-            System.out.print(Arrays.toString(headersLines));
-            
+
             for(String headerLine : headersLines)
             {
                 mail.addHeader(headerLine);
             }
-            
+
             // Add body
             mail.setBody(matcher.group(2));
         }
@@ -76,13 +77,13 @@ public class Mail
             // There is only the body
             mail.setBody(data.substring(0, data.lastIndexOf(SmtpProtocol.END_OF_DATA)));
         }
-        
+
         return mail;
     }
 
     /**
      * Gets a header's value from the mail.
-     * 
+     *
      * @param name The header's name.
      * @return The header's value if it exists, <code>null</code> otherwise.
      */
@@ -93,7 +94,7 @@ public class Mail
 
     /**
      * Gets every headers from the mail.
-     * 
+     *
      * @return The headers.
      */
     public Map<String, String> getHeaders()
@@ -103,7 +104,7 @@ public class Mail
 
     /**
      * Adds an header to the mail.
-     * 
+     *
      * @param header A string containing both the header's name and the header's
      * value.
      */
@@ -137,7 +138,7 @@ public class Mail
 
     /**
      * Gets the mail's body.
-     * 
+     *
      * @return The mail's body.
      */
     public String getBody()
@@ -147,7 +148,7 @@ public class Mail
 
     /**
      * Sets the mail's body.
-     * 
+     *
      * @param body The mail's body.
      */
     public void setBody(String body)
@@ -157,7 +158,7 @@ public class Mail
 
     /**
      * Gets the mail' size using UTF-8 by default.
-     * 
+     *
      * @return The mail' size.
      */
     public int getSize()
@@ -167,14 +168,14 @@ public class Mail
 
     /**
      * Gets the mail' size.
-     * 
+     *
      * @param charset The charset to use.
      * @return The mail' size.
      */
     public int getSize(Charset charset)
     {
         int size = 0;
-        
+
         // Compute headers' length
         for(Map.Entry<String, String> entry : this.headers.entrySet())
         {
@@ -188,7 +189,7 @@ public class Mail
 
         // Add the body's length
         size += this.body.getBytes(charset).length;
-        
+
         return size;
     }
 }

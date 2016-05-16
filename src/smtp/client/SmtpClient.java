@@ -1,11 +1,15 @@
 package smtp.client;
 
+import common.mails.Mail;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLSocket;
@@ -295,14 +299,73 @@ public class SmtpClient
      */
     public int sendMailBody(String body)
     {
+        // Add the end of data pattern to parse the mail if there are headers
         if(!body.endsWith(SmtpProtocol.END_OF_DATA))
         {
             body += SmtpProtocol.END_OF_DATA;
         }
+        
+        // Build an email to facilitate the send
+        Mail mail = Mail.parse(body);
+        
+        // Initialize vars to build fragments
+        StringBuilder mailBuilder = new StringBuilder();
+        Map<String, String> headers = mail.getHeaders();
+        List<String> bodyFragments = new ArrayList<>();
+        int currentIndex = 0, bodyLength = mail.getBody().length();
+        
+        // Write headers if there is at least one
+        if(!headers.isEmpty())
+        {
+            for(Map.Entry<String, String> entry : headers.entrySet())
+            {
+                mailBuilder.append(entry.getKey());
+                mailBuilder.append(": ");
+                mailBuilder.append(entry.getValue());
+                mailBuilder.append("\r\n");
+            }
 
+            // Write separator
+            mailBuilder.append("\r\n");
+        }
+        
+        // Write body
+        while(currentIndex < bodyLength)
+        {
+            if(bodyLength - currentIndex >= 76)
+            {
+                bodyFragments.add(
+                    mail.getBody().substring(
+                        currentIndex, currentIndex + 76
+                    )
+                );
+
+                currentIndex += 76;
+            }
+            else
+            {
+                bodyFragments.add(
+                    mail.getBody().substring(
+                        currentIndex
+                    )
+                );
+                currentIndex = mail.getBody().length();
+            }
+        }
+        
+        // Rebuild every line
+        mailBuilder.append(
+            String.join(
+                "\r\n",
+                bodyFragments
+            )
+        );
+        mailBuilder.append(SmtpProtocol.END_OF_DATA);
+        
+        // Finally, send it
         try
         {
-            this.sendRequest(body);
+            this.sendRequest(mailBuilder.toString());
         }
         catch(IOException ex)
         {

@@ -2,6 +2,7 @@ package common.mails;
 
 import common.mails.exceptions.AlreadyMarkedForDeletionException;
 import common.mails.exceptions.FailedMailBoxUpdateException;
+import common.mails.exceptions.InvalidMailBoxFileException;
 import common.mails.exceptions.MarkedForDeletionException;
 import common.mails.exceptions.NonExistentMailException;
 import common.mails.exceptions.UnknownMailBoxException;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import smtp.SmtpProtocol;
 
 /**
  * @author Bruno Buiret (bruno.buiret@etu.univ-lyon1.fr)
@@ -144,6 +146,7 @@ public class MailBox
                 }
 
                 // Write body, first split it every 76 characters
+                /*
                 List<String> bodyFragments = new ArrayList<>();
                 int currentIndex = 0, bodyLength = mail.getBody().length();
 
@@ -179,6 +182,9 @@ public class MailBox
 
                 // End the body
                 dataWriter.writeBytes("\r\n.\r\n");
+                */
+                dataWriter.writeBytes(mail.getBody());
+                dataWriter.writeBytes(SmtpProtocol.END_OF_DATA);
             }
 
             // Write the emails into the file
@@ -230,9 +236,13 @@ public class MailBox
      *
      * @throws common.mails.exceptions.UnknownMailBoxException If the mailbox
      * doesn't exist.
+     * @throws common.mails.exceptions.InvalidMailBoxFileException If the mailbox
+     * isn't built correctly.
      * @throws java.io.FileNotFoundException If the mailbox doesn't exist.
      * @throws java.lang.IllegalArgumentException If the mailbox isn't a file or
      * can't be read.
+     * @throws java.lang.UnsupportedOperationException If the marks system isn't
+     * supported.
      */
     public void load()
     throws UnknownMailBoxException, FileNotFoundException, IOException
@@ -246,12 +256,17 @@ public class MailBox
      * @param charset The charset to build the strings with.
      * @throws common.mails.exceptions.UnknownMailBoxException If the mailbox
      * doesn't exist.
+     * @throws common.mails.exceptions.InvalidMailBoxFileException If the mailbox
+     * isn't built correctly.
      * @throws java.io.FileNotFoundException If the mailbox doesn't exist.
      * @throws java.lang.IllegalArgumentException If the mailbox isn't a file or
      * can't be read.
+     * @throws java.lang.UnsupportedOperationException If the marks system isn't
+     * supported.
      */
     public void load(Charset charset)
-    throws UnknownMailBoxException, FileNotFoundException, IOException
+    throws UnknownMailBoxException, FileNotFoundException, IOException,
+        UnsupportedOperationException, InvalidMailBoxFileException
     {
         // Does the mailbox exist?
         if(!this.path.exists())
@@ -284,46 +299,51 @@ public class MailBox
         DataOutputStream dataWriter = new DataOutputStream(dataStream = new ByteArrayOutputStream());
         int currentCharacter = -1, previousCharacter = -1;
         Mail mail;
-        boolean endOfHeaders, endOfMail;
+        boolean endOfHeaders, endOfBody, endOfFile = false;
         final int ASCII_LF = (int) '\n';
         final int ASCII_CR = (int) '\r';
         final int ASCII_DOT = (int) '.';
         boolean fileEmpty = false;
-
+        
         try
         {
             // Try opening the mailbox
             mailBoxStream = new BufferedInputStream(new FileInputStream(this.path));
             
-            // Is the file empty?
-            if(mailBoxStream.markSupported())
+            // Are marks supported?
+            if(!mailBoxStream.markSupported())
             {
-                mailBoxStream.mark(1);
+                throw new UnsupportedOperationException(
+                    "Mailbox can't be read because the technology used isn't available."
+                );
+            }
+            
+            // Is the file empty?
+            mailBoxStream.mark(2);
                 
-                try
-                {
-                    if(-1 == mailBoxStream.read())
-                    {
-                        fileEmpty = true;
-                    }
-                }
-                catch(IOException ex)
+            try
+            {
+                if(-1 == mailBoxStream.read())
                 {
                     fileEmpty = true;
                 }
-                
-                mailBoxStream.reset();
+            }
+            catch(IOException ex)
+            {
+                fileEmpty = true;
             }
 
+            mailBoxStream.reset();
+            
             // Read only if the file isn't empty
             if(!fileEmpty)
             {
-                while(mailBoxStream.available() > 0)
+                do
                 {
                     // Create a new mail
                     mail = new Mail();
-                    endOfHeaders = endOfMail = false;
-
+                    endOfHeaders = endOfBody = false;
+                    
                     // Read the headers
                     do
                     {
@@ -353,6 +373,14 @@ public class MailBox
                             // Stop this loop
                             endOfHeaders = true;
                         }
+                        // Mailbox file isn't build correctly
+                        else if(-1 == currentCharacter)
+                        {
+                            throw new InvalidMailBoxFileException(String.format(
+                                "Mailbox \"%s\" isn't built correctly.",
+                                this.path.getAbsolutePath()
+                            ));
+                        }
                         // Otherwise, simply add the current character to the output stream
                         else
                         {
@@ -360,37 +388,44 @@ public class MailBox
                         }
                     }
                     while(!endOfHeaders);
-
-                    // Read the contents
+                    
+                    // Read the body
                     do
                     {
                         // Read the next character
                         previousCharacter = currentCharacter;
                         currentCharacter = mailBoxStream.read();
-
+                        
                         // Have we reached the end of the mail?
                         if(currentCharacter == ASCII_DOT && previousCharacter == ASCII_LF)
                         {
-                            if(mailBoxStream.markSupported())
+                            mailBoxStream.mark(3);
+                            
+                            if(ASCII_CR == mailBoxStream.read() && ASCII_LF == mailBoxStream.read())
                             {
-                                mailBoxStream.mark(2);
-                                
-                                if(ASCII_CR == mailBoxStream.read() && ASCII_LF == mailBoxStream.read())
-                                {
-                                    // Write the contents
-                                    mail.setBody(new String(dataStream.toByteArray(), charset).trim());
+                                // Write the contents
+                                mail.setBody(new String(dataStream.toByteArray(), charset).trim());
 
-                                    // Get rid of the next two characters
-                                    mailBoxStream.read();
-                                    mailBoxStream.read();
+                                // And clear the output stream to start a new mail
+                                dataStream.reset();
 
-                                    // And clear the output stream to start a new mail
-                                    dataStream.reset();
-
-                                    // Then, stop this loop
-                                    endOfMail = true;
-                                }
+                                // Then, stop this loop
+                                endOfBody = true;
                             }
+                            else
+                            {
+                                // This wasn't the end of the mail
+                                mailBoxStream.reset();
+                                dataWriter.writeByte(currentCharacter);
+                            }
+                        }
+                        // Mailbox file isn't build correctly
+                        else if(-1 == currentCharacter)
+                        {
+                            throw new InvalidMailBoxFileException(String.format(
+                                "Mailbox \"%s\" isn't built correctly.",
+                                this.path.getAbsolutePath()
+                            ));
                         }
                         // Otherwise, simply add the current character to the output stream
                         else
@@ -398,11 +433,17 @@ public class MailBox
                             dataWriter.writeByte(currentCharacter);
                         }
                     }
-                    while(!endOfMail);
+                    while(!endOfBody);
 
                     // Save the email
                     this.mailsList.add(mail);
+                    
+                    // Have we reached the end of the file?
+                    mailBoxStream.mark(2);
+                    endOfFile = -1 == mailBoxStream.read();
+                    mailBoxStream.reset();
                 }
+                while(!endOfFile);
             }
         }
         catch(FileNotFoundException ex)

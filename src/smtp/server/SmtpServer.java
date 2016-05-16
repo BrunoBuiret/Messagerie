@@ -1,6 +1,7 @@
 package smtp.server;
 
 import common.mails.MailBox;
+import common.mails.exceptions.InvalidMailBoxFileException;
 import common.mails.exceptions.UnknownMailBoxException;
 import java.io.File;
 import java.io.IOException;
@@ -173,8 +174,7 @@ public class SmtpServer
     public MailBox getMailBox(String userName)
     {
         // Initialize vars
-        File mailBoxFile = new File(this.mailBoxesPath, userName + ".mbox");
-        MailBox mailBox = new MailBox(mailBoxFile);
+        MailBox mailBox = new MailBox(new File(this.mailBoxesPath, userName + ".mbox"));
         
         try
         {
@@ -182,7 +182,7 @@ public class SmtpServer
             
             return mailBox;
         }
-        catch(UnknownMailBoxException | IOException ex)
+        catch(UnknownMailBoxException | IOException | UnsupportedOperationException | InvalidMailBoxFileException ex)
         {
             Logger.getLogger(SmtpServer.class.getName()).log(
                 Level.SEVERE,
